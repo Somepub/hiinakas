@@ -1,0 +1,14 @@
+.card {
+    display: grid;
+    background-color: white;
+    background-size: auto 85%;
+    background-repeat: no-repeat;
+    background-position: center center;
+    height: 120px;
+    width: 80px;
+    border: 1px solid;
+    padding: 7px;
+    z-index: 111;
+    will-change: transform;
+    border-radius: 3px;
+}

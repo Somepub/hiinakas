@@ -1,0 +1,256 @@
+@import url("https://fonts.googleapis.com/css2?family=Rubik+Maps&family=Rubik+Vinyl&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rubik+Maps&family=Rubik+Marker+Hatch&family=Rubik+Vinyl&family=Rubik+Wet+Paint&display=swap");
+
+#menu {
+  display: grid;
+  height: 100dvh;
+  width: 100dvw;
+  grid-template-rows: 100px 1fr;
+  background-image: url("./area/menu_background.jpg");
+  color: white;
+}
+
+#menuLogo {
+  display: grid;
+  justify-self: center;
+  align-self: baseline;
+  margin-top: 7px;
+}
+
+#menuIcon {
+  display: grid;
+  font-family: "Rubik Vinyl", system-ui;
+  font-size: 45px;
+}
+
+#menuIconAlt {
+  font-family: "Bebas Neue", sans-serif;
+  text-align: center;
+  display: flex;
+  flex-direction: row;
+}
+
+#menuIconAlt:before,
+#menuIconAlt:after {
+  content: "";
+  flex: 1 1;
+  border-bottom: 1px solid;
+  margin: auto;
+}
+#menuIconAlt:before {
+  margin-right: 10px;
+}
+#menuIconAlt:after {
+  margin-left: 10px;
+}
+
+#menuContent {
+    display: grid;
+    grid-template-rows: 100px 72px 40px 1fr auto;
+}
+
+#menuContentSelf {
+    display: grid;
+    justify-content: center;
+}
+
+#menuContentName {
+    display: grid;
+    text-align: center;
+}
+
+#menuContentOptions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    text-align: center;
+    border-top: 1px solid rgba(146, 148, 144, 0.582);
+    border-bottom: 1px solid rgba(146, 148, 144, 0.582);
+    height: 70px;
+}
+
+#menuContentOptionsProfile {
+    cursor: pointer;
+    border-right: 1px solid rgba(146, 148, 144, 0.582);
+    align-content: center;
+    background-color: #252526ed;
+}
+
+#menuContentOptionsSettings {
+    cursor: pointer;
+    align-content: center;
+    background-color: #252526ed;
+}
+
+#menuContentPlayers {
+    display: grid;
+    background-color: #252526ed;
+    grid-template-columns: 40px 1fr 40px;
+    border-bottom: 1px solid rgba(146, 148, 144, 0.582);
+}
+
+#menuContentPlayersDown {
+    display: grid;
+  justify-content: center;
+  align-content: center;
+  border-right: 1px solid rgba(146, 148, 144, 0.582);
+  cursor: pointer;
+}
+
+#menuContentPlayersLabel {
+    display: grid;
+  justify-content: center;
+  align-content: center;
+  
+}
+
+#menuContentPlayersUp {
+    display: grid;
+    justify-content: center;
+    align-content: center;
+    border-left: 1px solid rgba(146, 148, 144, 0.582);
+    cursor: pointer;
+}
+
+
+#menuContentOpponent {
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
+}
+
+.menuContentOpponent {
+    align-items: center;
+    gap: 15px;
+    display: grid;
+    grid-template-columns: 100px auto 40px;
+    background-color: #252526ed;
+    border-bottom: 1px solid rgba(146, 148, 144, 0.182);
+}
+
+.menuContentOpponent:not:last-child {
+    border-bottom: unset;
+}
+
+.menuContentOpponentAdd {
+    display: grid;
+    background-color: rgba(80, 76, 76, 0.79);
+    border-bottom: 1px solid rgba(146, 148, 144, 0.182);
+    cursor: pointer;
+
+    span {
+        display: grid;
+        justify-content: center;
+        align-content: center;
+    }
+}
+
+.menuContentOpponentAdd:not:last-child {
+    border-bottom: unset;
+}
+
+.menuContentOpponentAddWrapper {
+    display: grid;
+    background-color: #252526ed;
+    border-bottom: 1px solid rgba(146, 148, 144, 0.182);
+    grid-template-columns: minmax(150px, 250px) 1fr;
+    justify-content: center;
+}
+
+.menuContentOpponentAddSearch {
+    display: grid;
+    align-content: center;
+    margin-left: 7px;
+    margin-right: 7px;
+}
+
+.menuContentOpponentAddButton {
+    display: grid;
+    align-content: center;
+    justify-content: center;
+    border-left: 1px solid rgba(146, 148, 144, 0.182);
+    cursor: pointer;
+}
+
+.menuContentOpponentIcon {
+    margin-left: 7px;
+}
+
+#menuContentFindMatch {
+    display: grid;
+    justify-content: center;
+    height: 75px;
+    background-color: #252526ed;
+    border-top: 3px solid rgba(146, 148, 144, 0.582);
+    cursor: pointer;
+
+    span {
+        display: grid;
+        align-content: center;
+    }
+}
+
+#menuContentIcon {
+    display: grid;
+    z-index: 100;
+    justify-content: center;
+}
+
+#menuNotification {
+    display: grid;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+#menuNotificationWrapper {
+    display: grid;
+    justify-content: center;
+    align-content: center;
+    z-index: 1111;
+    background-color: rgba(43, 37, 37, 0.8980392157);
+}
+
+#menuNotificationContent {
+    width: calc(100vw - 50px);
+    height: 150px;
+    display: grid;
+    background-color: rgba(37, 37, 38, 0.9294117647);
+}
+
+#menuNotificationButtons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-content: center;
+}
+
+#menuNotificationText {
+    display: grid;
+    align-content: center;
+    justify-content: center;
+}
+
+#menuNotificationAccept {
+    height: 100px;
+    display: grid;
+    background-color: #425e3b3d;
+    justify-content: center;
+    align-content: center;
+    cursor: pointer;
+}
+
+#menuNotificationDecline {
+    height: 100px;
+    display: grid;
+    background-color: #ae35353d;
+    justify-content: center;
+    align-content: center;
+    cursor: pointer;
+}
+
+#menuContentOpponentPending {
+    display: grid;
+    background-color: rgba(37, 37, 38, 0.9294117647);
+    justify-content: center;
+    align-content: center;
+}
+
+

@@ -1,0 +1,18 @@
+#drop {
+    display: grid;
+    z-index: 1;
+    
+    #cardDrop {
+        width: 80px;
+        border: 1px solid #ffffff2e;
+        justify-self: center;
+        height: calc(100% - 20px);
+        margin-top: 8px;
+      }
+
+    #cards {
+        display: flex;
+        position: relative;
+    }
+}
+

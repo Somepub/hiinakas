@@ -1,0 +1,23 @@
+#front {
+    display: grid;
+    grid-area: front;
+    justify-self: center;
+    align-self: center;
+    height: 100%;
+    width: 100%;
+}
+
+#frontCards {
+    display: flex;
+    justify-content: end;
+}
+
+.floorCards {
+    display: flex;
+    position: absolute;
+}
+
+.hiddenCards {
+    display: flex;
+    position: absolute;
+}

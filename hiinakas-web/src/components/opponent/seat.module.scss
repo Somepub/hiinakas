@@ -1,0 +1,43 @@
+
+.handCards {
+    display: flex;
+    justify-content: center;
+}
+
+.floorCards {
+    display: flex;
+    position: absolute;
+    right: 5px;
+}
+
+.hiddenCards {
+    display: flex;
+    position: absolute;
+    right: 5px;
+}
+
+#icon {
+    display: grid;
+    justify-self: center;
+    align-self: center;
+    position: relative;
+}
+
+#seat {
+    display: grid;
+    position: relative;
+    grid-template-rows: 66px 1fr 1fr;
+}
+
+#playerName {
+    position: absolute;
+    top: -21px;
+    color: white;
+    left: 26px;
+    z-index: 333;
+    
+}
+
+.textShadow {
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+}

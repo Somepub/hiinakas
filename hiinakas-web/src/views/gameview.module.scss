@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Passero+One&display=swap');
+
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: "Passero One", sans-serif;
+}
+
+#mainwrapper {
+    display: grid;
+    height: 100dvh;
+    width: 100dvw;
+    grid-template-areas:
+    "player player player"
+    "table table table"
+    "front front front"
+    "hand hand hand";
+    grid-template-rows: 1fr 150px 65px 145px;
+    overflow: hidden;
+    grid-template-columns: 1fr;
+}

@@ -1,0 +1,38 @@
+{
+    "compilerOptions": {
+      "allowSyntheticDefaultImports": true,
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+      "forceConsistentCasingInFileNames": true,
+      "jsx": "react",
+      "module": "esnext",
+      "moduleResolution": "node",
+      "noImplicitAny": true,
+      "outDir": "./dist",
+      "preserveConstEnums": true,
+      "target": "es6",
+      "baseUrl": "src",
+      "resolveJsonModule":true,
+      "lib": ["es2019","dom", "dom.iterable"],
+      "paths": {
+        "@types": ["types/index"],
+        "@stores": [
+          "stores/index"
+        ],
+        "@components/*": ["components/*"],
+        "@views/*": ["views/*"],
+        "@stores/*" : ["stores/*"],
+        "@assets/*": ["assets/*"],
+        "@common/*": ["../../hiinakas-common/src/*"]
+    },
+    },
+    "exclude": [
+      "node_modules"
+    ],
+    "include": [
+      "./src", 
+      "../../hiinakas-common/src",
+      "./declaration.d.ts",
+    ]
+    
+  }

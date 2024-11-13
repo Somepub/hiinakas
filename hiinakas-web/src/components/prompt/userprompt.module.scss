@@ -1,0 +1,36 @@
+#userprompt {
+    display: grid;
+    height: calc(var(--vh) * 100);
+    width: 100vw;
+    grid-template-rows: 100px auto auto;
+    background-image: url("./area/menu_background.jpg");
+    color: white;
+}
+
+#userpromptLabel {
+    display: grid;
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 24px;
+    align-content: center;
+    justify-content: center;
+}
+
+#userpromptInput {
+    font-size: 24px;
+    height: 60px;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+#userpromptButton {
+    padding: 25px;
+    display: grid;
+    justify-self: center;
+    align-self: center;
+    border: 1px solid;
+    width: calc(100% - 100px);
+    text-align: center;
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 24px;
+    cursor: pointer;
+}

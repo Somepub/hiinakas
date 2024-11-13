@@ -1,0 +1,12 @@
+
+#hand {
+    display: grid;
+    grid-area: hand;
+    margin-bottom: 15px;
+    
+    
+      #handCards {
+        display: flex;
+        justify-content: center;
+      }
+  } 
