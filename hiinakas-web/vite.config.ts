@@ -13,7 +13,6 @@ export default defineConfig(({ command, mode }) => {
         targets: [
           { src: "./src/assets/cards", dest: "./cards" },
           { src: "./src/assets/area", dest: "./area" },
-          { src: "./src/serviceWorker.js", dest: "./" },
         ]
       })
     ],

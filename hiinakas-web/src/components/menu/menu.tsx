@@ -6,6 +6,7 @@ import { observer } from "mobx-react-lite";
 import { useStore } from "@stores/stores";
 import Select from "react-select";
 import { Opponent, OpponentState } from "@stores/menu";
+import menuBackground from "@assets/area/menu_background.jpg";
 
 const MenuLogo = () => {
   return (
@@ -221,7 +222,7 @@ export const MainMenu = observer(() => {
   });
 
   return (
-    <animated.div style={styleEffect} id={styles.menu}>
+    <animated.div style={{...styleEffect, backgroundImage: `url(${menuBackground})`}} id={styles.menu}>
       {menu.gameInvite?.uid && <MenuNotification />}
       <MenuLogo />
       <MenuContent />
