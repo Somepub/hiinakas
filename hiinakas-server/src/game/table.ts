@@ -1,4 +1,4 @@
-import { CARD_EFFECT, CardJson } from "../types/card";
+import { CARD_EFFECT, CardJson } from "#types";
 import { Card } from "./card";
 
 type Turn = {

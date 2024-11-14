@@ -1,6 +1,6 @@
 import { CardT } from "@components/card/card";
 import { action, makeAutoObservable, makeObservable, observable } from "mobx";
-import { CardJson } from "../types/card";
+import { CardJson } from "@types";
 
 export class Table {
   pool: CardJson[] = [];

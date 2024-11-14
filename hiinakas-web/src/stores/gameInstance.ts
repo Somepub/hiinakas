@@ -10,11 +10,11 @@ import {
   LobbyGameRequest,
   LobbyGameResponse,
   OpponentPlayerStatus,
-} from "@common/game";
+  PublicLobbyPlayer
+} from "@types";
 import { Turn } from "./turn";
 import { Deck } from "./deck";
 import { Opponent } from "./opponent";
-import { PublicLobbyPlayer } from "@types";
 import { Menu } from "./menu";
 
 export type ZoneBounds = {

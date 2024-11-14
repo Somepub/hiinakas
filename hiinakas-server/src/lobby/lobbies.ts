@@ -1,5 +1,5 @@
 import { Lobby } from "./lobby";
-import { LobbyRequest } from "../types/lobby";
+import { LobbyRequest } from "#types";
 
 export class Lobbies {
   lobbiesPool: Map<string, Lobby>;

@@ -1,7 +1,7 @@
 import React from "react";
 import { useSprings, animated, to as interpolate, to } from "react-spring";
 import Card from "./card";
-import { HiddenCardJson } from "@common/card";
+import { HiddenCardJson } from "@types";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@stores/stores";
 import useMeasure from "react-use-measure";

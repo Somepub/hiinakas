@@ -1,4 +1,4 @@
-import { FloorCardJson, HiddenCardJson } from "../types/card";
+import { FloorCardJson, HiddenCardJson } from "@types";
 import { makeAutoObservable } from "mobx";
 
 export class Opponent {

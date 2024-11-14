@@ -1,4 +1,4 @@
-import {  HiddenCardJson, RANK, SUIT } from "../types/card";
+import {  HiddenCardJson, RANK, SUIT } from "#types";
 import { Card } from "./card";
 
 export class Deck {

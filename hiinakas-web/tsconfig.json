@@ -15,7 +15,6 @@
       "resolveJsonModule":true,
       "lib": ["es2019","dom", "dom.iterable"],
       "paths": {
-        "@types": ["types/index"],
         "@stores": [
           "stores/index"
         ],
@@ -23,7 +22,7 @@
         "@views/*": ["views/*"],
         "@stores/*" : ["stores/*"],
         "@assets/*": ["assets/*"],
-        "@common/*": ["../../hiinakas-common/src/*"]
+        "@types": ["../../hiinakas-common/src/index"]
     },
     },
     "exclude": [

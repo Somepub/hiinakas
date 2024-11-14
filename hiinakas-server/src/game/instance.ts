@@ -2,7 +2,6 @@ import { v4 } from "uuid";
 import { Player } from "./player";
 import { Table } from "./table";
 import { Deck } from "./deck";
-import { CARD_EFFECT, CardJson } from "../types/card";
 import { Md5 } from "ts-md5";
 import {
   GameTurn,
@@ -11,8 +10,9 @@ import {
   PlayerStatus,
   OpponentPlayerStatus,
   GameTurnFeedback,
-} from "@common/game";
-import { LobbyPlayer } from "../types/lobby";
+  CARD_EFFECT, CardJson,
+  LobbyPlayer
+} from "#types";
 import { Card } from "./card";
 
 export class Instance {

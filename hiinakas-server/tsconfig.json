@@ -10,7 +10,10 @@
     "baseUrl": "./src",
     "experimentalDecorators": true,
     "strict": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "paths": {
+      "#types": ["../../hiinakas-common/src/index"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "src/**/*.spec.ts"]

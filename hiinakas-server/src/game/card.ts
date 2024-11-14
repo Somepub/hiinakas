@@ -1,4 +1,4 @@
-import { RANK, SUIT, CARD_EFFECT } from "../../../hiinakas-common/src/card";
+import { RANK, SUIT, CARD_EFFECT } from "#types";
 import { v4 } from "uuid";
 
 export class Card {

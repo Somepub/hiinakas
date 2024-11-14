@@ -1,6 +1,6 @@
 import { makeAutoObservable, reaction } from "mobx";
 import { Md5 } from "ts-md5";
-import { GameInstanceAction, GameInstanceMessage, GameInstanceMessageAction } from "@common/game";
+import { GameInstanceAction, GameInstanceMessage, GameInstanceMessageAction } from "@types";
 import dropCard from "../assets/sounds/cardput.wav";
 import drawCard from "../assets/sounds/carddraw.wav";
 import suffleCards from "../assets/sounds/cardshuffle.wav";

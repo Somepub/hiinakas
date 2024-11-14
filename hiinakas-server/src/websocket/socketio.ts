@@ -16,7 +16,7 @@ import {
   LobbyInviteResponse,
   LobbyPlayer,
   PublicLobbyPlayer,
-} from "../types";
+} from "#types";
 import { v4 } from "uuid";
 import webpush from "web-push";
 

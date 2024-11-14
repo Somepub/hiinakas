@@ -38,3 +38,7 @@ export type LobbyInviteResponse = {
   requestToPlayerUid: string;
   result: boolean;
 };
+
+export type LobbyMaxPlayerChange = LobbyRequest & {
+  maxPlayers: number;
+};

@@ -1,4 +1,4 @@
-import { PublicLobbyPlayer } from "types";
+import { PublicLobbyPlayer } from "#types";
 
 export type User = {
     userUid: string;

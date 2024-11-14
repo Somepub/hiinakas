@@ -1,6 +1,6 @@
 import { CardT } from "@components/card/card";
 import { action, makeAutoObservable, makeObservable, observable } from "mobx";
-import { CardJson, HiddenCardJson } from "@common/card";
+import { CardJson, HiddenCardJson } from "@types";
 
 export class Deck {
   pool: HiddenCardJson[] = [];

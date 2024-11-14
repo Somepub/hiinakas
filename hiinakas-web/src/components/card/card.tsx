@@ -1,11 +1,10 @@
 import React from "react";
 import { Vector2, useDrag } from "@use-gesture/react";
 import styles from "./card.module.scss";
-import { CARD_EFFECT, CardJson, FloorCardJson, HiddenCardJson } from "@common/card";
 import { animated, useSpring } from "react-spring";
 import { observer, useLocalObservable } from "mobx-react-lite";
 import { useStore } from "@stores/stores";
-import { GameInstanceAction } from "@common/game";
+import { GameInstanceAction, CARD_EFFECT, CardJson, FloorCardJson, HiddenCardJson } from "@types";
 
 export type CardT = {
   card: CardJson | FloorCardJson | HiddenCardJson;

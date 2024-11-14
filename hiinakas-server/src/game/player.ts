@@ -1,4 +1,4 @@
-import { CardJson } from "../types/card";
+import { CardJson } from "#types";
 import { Card } from "./card";
 
 export class Player {

@@ -6,8 +6,6 @@ import { observer } from "mobx-react-lite";
 import useMeasure from "react-use-measure";
 import { useSprings, animated, to as interpolate } from "@react-spring/web";
 
-
-
 const trans = (r: number, s: number) => ``;
 
 export const TableCardDrop = observer(() => {

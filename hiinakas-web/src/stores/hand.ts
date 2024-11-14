@@ -1,4 +1,4 @@
-import { CardJson, FloorCardJson, HiddenCardJson } from "../types/card";
+import { CardJson, FloorCardJson, HiddenCardJson } from "@types";
 import { action, makeAutoObservable, makeObservable, observable, set } from "mobx";
 
 export class Hand {
