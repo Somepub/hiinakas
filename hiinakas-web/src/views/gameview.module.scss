@@ -15,7 +15,7 @@ body {
     "table table table"
     "front front front"
     "hand hand hand";
-    grid-template-rows: 1fr 150px 65px 145px;
+    grid-template-rows: minmax(150px, 600px) 150px 65px 145px;
     overflow: hidden;
     grid-template-columns: 1fr;
     background-image: url(./area/menu_background.jpg);

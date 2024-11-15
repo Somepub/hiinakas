@@ -26,7 +26,7 @@
 #seat {
     display: grid;
     position: relative;
-    grid-template-rows: 66px 1fr 1fr;
+    grid-template-rows: 66px 1fr;
 }
 
 #playerName {
@@ -40,4 +40,10 @@
 
 .textShadow {
     text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+}
+
+#iconCards {
+    display: grid;
+    justify-content: center;
+    align-content: center;
 }

@@ -63,13 +63,19 @@ const PlayerDetails = observer(() => {
   );
 });
 
+const PlayerIconCards = observer(() => {
+  return <div id={styles.iconCards}>
+    <PlayerIcon />
+    <PlayerCards />
+  </div>
+});
+
 export const Seat = observer(() => {
   const store = useStore();
     return (
       <div id={styles.seat}>
         <PlayerDetails />
-        <PlayerIcon />
-        <PlayerCards />
+        <PlayerIconCards />
       </div>
     );
 });
