@@ -1,5 +1,5 @@
 import { Instance } from "../game/instance";
-import { LobbyPlayer, GameInstanceAction, GameTurnFeedback, LobbyGameResponse } from "#types";
+import { LobbyPlayer, GameInstanceAction, GameTurnFeedback, LobbyGameResponse, LobbyRequest } from "#types";
 
 export type InternalLobbyPlayer = LobbyPlayer & { publicUid?: string};
 
@@ -70,5 +70,9 @@ export class Lobby {
       };
       socketCallback(lobbyGameResponse, player);
     }
+  }
+
+  handleLobbyRequest(lobbyRequest: LobbyRequest) {
+    
   }
 }

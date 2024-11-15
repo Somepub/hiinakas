@@ -1,7 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { HttpsServer } from "../server/https";
 import { Lobbies } from "../lobby/lobbies";
-import { UserHandler } from "../user/userhandler";
+import { User, UserHandler } from "../user/userhandler";
 import { SqliteDatabase } from "../db/sqlitedb";
 import { Lobby } from "../lobby/lobby";
 import {
@@ -56,292 +56,239 @@ export class SocketIoServer {
     this.createHandlers();
   }
 
+  private async handleUserConnection(socket: Socket) {
+    const userUid = socket.handshake?.query?.userUid as string;
+    const publicUid = socket.handshake?.query?.publicUid as string;
+    const name = socket.handshake?.query?.name as string;
+    let sub = socket.handshake?.query.sub as string;
+    
+    if(!sub) return socket.disconnect();
+    const pushSub = JSON.parse(sub) as PushSubscriptionJSON; 
+    
+    if (!userUid || !publicUid || !name || this.socketUsers.has(userUid)) {
+      return socket.disconnect();
+    }
+
+    this.socketUsers.set(userUid, socket.id);
+    const user = await this.setupUser(userUid, publicUid, name, pushSub);
+    
+    this.userHandler.addUser(socket.id, user);
+    socket.join(user.publicUid);
+    
+    this.setupSocketListeners(socket, user);
+  }
+
+  private async setupUser(userUid: string, publicUid: string, name: string, pushSub: PushSubscriptionJSON) {
+    const userExists = await this.db.getUserExists(userUid);
+    if (!userExists) {
+      this.db.createUser(userUid, publicUid, name);
+    }
+
+    let user = await this.db.getUser(userUid);
+    
+    if (user?.name !== name) {
+      user.name = name;
+    }
+
+    if (user?.publicUid !== publicUid) {
+      user.publicUid = publicUid;
+    }
+
+    user.pushSubscription = pushSub;
+    return user;
+  }
+
+  private setupSocketListeners(socket: Socket, user: User) {
+    socket.on("users/request", () => this.handleUsersRequest(socket));
+    socket.on("lobby/request", (message: LobbyJoinRequest) => this.handleLobbyRequest(socket, message));
+    socket.on("lobby/connect", (message: LobbyRequest) => this.handleLobbyConnect(socket, message));
+    socket.on("lobby/ready", (message: LobbyRequest) => this.handleLobbyReady(socket, message));
+    socket.on("lobby/leave", (message: LobbyRequest) => this.handleLobbyLeave(message));
+    socket.on("game/turn", (message: LobbyGameRequest) => this.handleGameTurn(socket, message));
+    socket.on("disconnect", () => this.handleDisconnect(socket, user.gameUid));
+  }
+
   createHandlers() {
     this.io.on("connection", async (socket: Socket) => {
-      const userUid = socket.handshake?.query?.userUid as string;
-      const publicUid = socket.handshake?.query?.publicUid as string;
-      const name = socket.handshake?.query?.name as string;
-      let sub = socket.handshake?.query.sub as string;
-      if(!sub) return socket.disconnect();
-      const pushSub = JSON.parse(sub) as PushSubscriptionJSON; 
-      
-      if (
-        !userUid ||
-        !publicUid ||
-        !name ||
-        this.socketUsers.has(userUid)
-      ) {
-        return socket.disconnect();
-      }
-      this.socketUsers.set(userUid, socket.id);
-      //console.log(this.socketUsers, this.lobbies);
-      const userExists = await this.db.getUserExists(userUid);
-      if (!userExists) {
-        this.db.createUser(userUid, publicUid, name);
-      }
+      await this.handleUserConnection(socket);
+    });
+  }
 
-      let user = await this.db.getUser(userUid);
+  private handleUsersRequest(socket: Socket) {
+    const users = this.userHandler.getPublicUsers();
+    socket.emit("users/response", users);
+  }
 
-      if (user?.name !== name) {
-        user.name = name;
-      }
+  private handleLobbyRequest(socket: Socket, message: LobbyJoinRequest) {
+    const req: LobbyInviteRequest = {
+      uid: message.uid,
+      senderPlayerUid: message.callerPlayerUid,
+    };
+    this.io.sockets.in(message.requestToPlayerUid).emit("lobby/invite", req);
+  }
 
-      if (user?.publicUid !== publicUid) {
-        user.publicUid = publicUid;
-      }
+  private handleLobbyConnect(socket: Socket, message: LobbyRequest) {
+    if (!this.lobbies.hasLobby(message.uid)) {
+      this.lobbies.addNewLobby(message.uid);
+    }
+    
+    const lobby = this.lobbies.getLobby(message.uid)!;
+    const player = this.userHandler.getUser(socket.id)!;
+    
+    if (!lobby.players.has(player.publicUid)) {
+      this.lobbies.addPlayer(message, player.gameUid);
+      socket.join(message.uid);
+      this.io.sockets.in(message.uid).emit("lobby/player-joined", player);
+    }
+  }
 
-      user.pushSubscription = pushSub;
+  private handleLobbyReady(socket: Socket, message: LobbyRequest) {
+    if (!this.lobbies.hasLobby(message.uid)) return;
+    
+    const lobby = this.lobbies.getLobby(message.uid)!;
+    const player = this.userHandler.getUser(socket.id)!;
+    
+    this.lobbies.setPlayerReady(message);
+    this.io.sockets.in(message.uid).emit("lobby/player-ready", player);
+    
+    if (this.lobbies.isLobbyReady(message) && lobby.players.size === 2) {
+      const gameState = lobby.startGame();
+      this.io.sockets.in(message.uid).emit("game/start", gameState);
+    }
+  }
 
-      this.userHandler.addUser(socket.id, user);
-      socket.join(user.publicUid);
-
-      socket.on("users/request", () => {
-        const users = this.userHandler.getPublicUsers();
-        socket.emit("users/response", users);
-      });
-
-      socket.on("lobby/request", (message: LobbyJoinRequest) => {
-        const req: LobbyInviteRequest = {
-          uid: message.uid,
-          senderPlayerUid: message.callerPlayerUid,
-        };
-        console.log("lobby req", message);
-
-        this.io.sockets
-          .in(message.requestToPlayerUid)
-          .emit("lobby/invite", req);
-
-        /*const payload = JSON.stringify({ title: "Gamerequest", body: `Gamerequest from ${message.callerPlayerUid}` });
-        const user = this.userHandler.getUsers().find( user => user.publicUid === message.requestToPlayerUid);
-
-        const sendPushSub = {
-          endpoint: user?.pushSubscription?.endpoint!,
-          keys: {
-              p256dh: user?.pushSubscription?.keys!["p256dh"]!,
-              auth: user?.pushSubscription.keys!["auth"]!
-          }
-         };
-        webpush.sendNotification(sendPushSub, payload);*/
-      });
-
-      socket.on("lobby/leave", async (message: LobbyRequest) => {
-        if (this.lobbies.hasLobby(message.uid)) {
-          this.lobbies.removePlayer(message);
-          if (this.lobbies.getLobby(message.uid)!.players.size < 1) {
-            this.lobbies.removeLobby(message.uid);
-            // TODO:: LobbyResponse
-          }
-        }
-      });
-
-      socket.on("lobby/invite", (message: LobbyInviteResponse) => {
-        this.io.sockets
-          .in(message.senderPlayerUid)
-          .emit("lobby/invite_response", message);
-      });
-
-      socket.on("lobby/connect", async (message: LobbyRequest) => {
-        let lobby: Lobby;
-        console.debug("Player joined: ", message.player.uid, socket.id);
-        if (!this.lobbies.hasLobby(message.uid)) {
-          lobby = this.lobbies.addNewLobby(message.uid);
-          lobby.setOwner(message.player);
-        } else {
-          lobby = this.lobbies.getLobby(message.uid)!;
-        }
-
-        this.lobbies.addPlayer(message, user.publicUid);
-        socket.join(message.uid);
-        socket.join(message.player.uid);
-
-        this.io.sockets.in(message.uid).emit("lobby/connect", message.uid); // TODO:: LobbyResponse
-
-        const lobbyPlayers: PublicLobbyPlayer[] = lobby
-          .getPlayers()
-          .map((player) => ({
-            uid: player.publicUid!,
-            name: player.name,
-            ready: player.ready,
-            owner: lobby.owner?.uid === player.uid,
-          }));
-        this.io.sockets.in(message.uid).emit("lobby/status", lobbyPlayers);
-      });
-
-      socket.on("lobby/ready", (message: LobbyRequest) => {
-        const lobby = this.lobbies.getLobby(message.uid)!;
-        lobby.updatePlayer(message.player);
-        this.io.sockets
-          .in(message.uid)
-          .emit("lobby/status", lobby.getPlayers());
-      });
-
-      socket.on("lobby/start", (message: LobbyRequest) => {
-        console.log(this.lobbies.isLobbyReady(message), message);
-        if (this.lobbies.isLobbyReady(message)) {
-          const lobby = this.lobbies.getLobby(message.uid)!;
-
-          if (lobby.owner?.uid !== message.player.uid) return;
-
-          const gameInstance = lobby.startGame();
-          console.debug(
-            "Game ready: ",
-            message.uid,
-            gameInstance.uid,
-            message.player
-          );
-
-          if (!gameInstance?.getInitInstance()) {
-            console.debug("Game init.");
+  private handleGameTurn(socket: Socket, message: LobbyGameRequest) {
+    const lobby = this.lobbies.getLobby(message.uid)!;
+    const gameInstance = lobby.gameInstance;
+    if (!gameInstance) return;
+    
+    if (gameInstance?.isMyTurn(message.player.uid)) {
+      const currPlayer = gameInstance?.getCurrentPlayer();
+      switch (message.action) {
+        case GameInstanceAction.PLAY_CARD:
+          if (gameInstance?.playCard(message.cardId!)) {
             let gameTurnFeedback: GameTurnFeedback = {
-              action: GameInstanceAction.INIT,
+              action: message.action,
               message: {
                 type: GameInstanceMessageAction.INFO,
-                message: "Game started!",
+                message: "Card played",
               },
             };
             lobby.generateGameTurn(
               gameTurnFeedback,
-              (lobbyGameResponse, player) => {
-                console.debug("Game turn: ", player);
-                this.io.to(player.uid).emit("game/turn", lobbyGameResponse);
-              }
+              (lobbyGameResponse, player) =>
+                this.io
+                  .to(player.uid)
+                  .emit("game/turn", lobbyGameResponse)
             );
-            gameInstance.initInstance();
+            gameInstance.lookNextTurn(currPlayer);
+          } else {
+            let gameTurnFeedback: GameTurnFeedback = {
+              action: message.action,
+              message: {
+                type: GameInstanceMessageAction.ERROR,
+                message: "Failed to play card",
+              },
+            };
+            lobby.generateGameTurn(
+              gameTurnFeedback,
+              (lobbyGameResponse, player) =>
+                this.io
+                  .to(player.uid)
+                  .emit("game/turn", lobbyGameResponse)
+            );
           }
-        } else {
-          socket.emit("lobby/start", {
-            uid: message.uid,
-            message: "Waiting players...",
-          });
-          return;
-        }
-      });
+          break;
+        case GameInstanceAction.END_TURN:
+          if (gameInstance?.endTurn()) {
+            gameInstance?.resetPlayMove();
 
-      socket.on("game/turn", (message: LobbyGameRequest) => {
-        const lobby = this.lobbies.getLobby(message.uid);
-        if (lobby) {
-          const gameInstance = lobby?.gameInstance;
-          if (gameInstance?.isMyTurn(message.player.uid)) {
-            const currPlayer = gameInstance?.getCurrentPlayer();
-            switch (message.action) {
-              case GameInstanceAction.PLAY_CARD:
-                if (gameInstance?.playCard(message.cardId!)) {
-                  let gameTurnFeedback: GameTurnFeedback = {
-                    action: message.action,
-                    message: {
-                      type: GameInstanceMessageAction.INFO,
-                      message: "Card played",
-                    },
-                  };
-                  lobby.generateGameTurn(
-                    gameTurnFeedback,
-                    (lobbyGameResponse, player) =>
-                      this.io
-                        .to(player.uid)
-                        .emit("game/turn", lobbyGameResponse)
-                  );
-                  gameInstance.lookNextTurn(currPlayer);
-                } else {
-                  let gameTurnFeedback: GameTurnFeedback = {
-                    action: message.action,
-                    message: {
-                      type: GameInstanceMessageAction.ERROR,
-                      message: "Failed to play card",
-                    },
-                  };
-                  lobby.generateGameTurn(
-                    gameTurnFeedback,
-                    (lobbyGameResponse, player) =>
-                      this.io
-                        .to(player.uid)
-                        .emit("game/turn", lobbyGameResponse)
-                  );
-                }
-                break;
-              case GameInstanceAction.END_TURN:
-                if (gameInstance?.endTurn()) {
-                  gameInstance?.resetPlayMove();
-
-                  if (gameInstance.isWinCondition(currPlayer)) {
-                    let gameTurnFeedback: GameTurnFeedback = {
-                      action: message.action,
-                      message: {
-                        type: GameInstanceMessageAction.WIN,
-                        message: "Game over",
-                      },
-                      hasWon: true,
-                    };
-                    lobby.generateGameTurn(
-                      gameTurnFeedback,
-                      (lobbyGameResponse, player) =>
-                        this.io
-                          .to(player.uid)
-                          .emit("game/turn", lobbyGameResponse)
-                    );
-                  } else {
-                    let gameTurnFeedback: GameTurnFeedback = {
-                      action: message.action,
-                      message: {
-                        type: GameInstanceMessageAction.INFO,
-                        message: "Turn ended",
-                      },
-                    };
-                    lobby.generateGameTurn(
-                      gameTurnFeedback,
-                      (lobbyGameResponse, player) =>
-                        this.io
-                          .to(player.uid)
-                          .emit("game/turn", lobbyGameResponse)
-                    );
-                  }
-                } else {
-                  let gameTurnFeedback: GameTurnFeedback = {
-                    action: message.action,
-                    message: {
-                      type: GameInstanceMessageAction.ERROR,
-                      message: "Failed to end turn",
-                    },
-                  };
-                  lobby.generateGameTurn(
-                    gameTurnFeedback,
-                    (lobbyGameResponse, player) =>
-                      this.io
-                        .to(player.uid)
-                        .emit("game/turn", lobbyGameResponse)
-                  );
-                }
-
-                break;
-              case GameInstanceAction.PICK_UP:
-                let gameTurnFeedback: GameTurnFeedback = {
-                  action: message.action,
-                  message: {
-                    type: GameInstanceMessageAction.INFO,
-                    message: "Cards picked up",
-                  },
-                };
-                gameInstance.pickupTurn();
-                gameInstance.resetPlayMove();
-                gameInstance?.endTurn(true);
-                lobby.generateGameTurn(
-                  gameTurnFeedback,
-                  (lobbyGameResponse, player) =>
-                    this.io.to(player.uid).emit("game/turn", lobbyGameResponse)
-                );
-              default:
-                break;
+            if (gameInstance.isWinCondition(currPlayer)) {
+              let gameTurnFeedback: GameTurnFeedback = {
+                action: message.action,
+                message: {
+                  type: GameInstanceMessageAction.WIN,
+                  message: "Game over",
+                },
+                hasWon: true,
+              };
+              lobby.generateGameTurn(
+                gameTurnFeedback,
+                (lobbyGameResponse, player) =>
+                  this.io
+                    .to(player.uid)
+                    .emit("game/turn", lobbyGameResponse)
+              );
+            } else {
+              let gameTurnFeedback: GameTurnFeedback = {
+                action: message.action,
+                message: {
+                  type: GameInstanceMessageAction.INFO,
+                  message: "Turn ended",
+                },
+              };
+              lobby.generateGameTurn(
+                gameTurnFeedback,
+                (lobbyGameResponse, player) =>
+                  this.io
+                    .to(player.uid)
+                    .emit("game/turn", lobbyGameResponse)
+              );
             }
           } else {
-            this.io.to(message.player.uid).emit("game/turn", "Not ur turn!");
+            let gameTurnFeedback: GameTurnFeedback = {
+              action: message.action,
+              message: {
+                type: GameInstanceMessageAction.ERROR,
+                message: "Failed to end turn",
+              },
+            };
+            lobby.generateGameTurn(
+              gameTurnFeedback,
+              (lobbyGameResponse, player) =>
+                this.io
+                  .to(player.uid)
+                  .emit("game/turn", lobbyGameResponse)
+            );
           }
-        }
-      });
 
-      socket.on("disconnect", () => {
-        this.userHandler.onDisconnect(socket.id);
-        this.socketUsers.delete(userUid);
-        console.log(`User ${userUid} with Socket ${socket.id} disconnected`);
-      });
-    });
+          break;
+        case GameInstanceAction.PICK_UP:
+          let gameTurnFeedback: GameTurnFeedback = {
+            action: message.action,
+            message: {
+              type: GameInstanceMessageAction.INFO,
+              message: "Cards picked up",
+            },
+          };
+          gameInstance.pickupTurn();
+          gameInstance.resetPlayMove();
+          gameInstance?.endTurn(true);
+          lobby.generateGameTurn(
+            gameTurnFeedback,
+            (lobbyGameResponse, player) =>
+              this.io.to(player.uid).emit("game/turn", lobbyGameResponse)
+          );
+        default:
+          break;
+      }
+    } else {
+      this.io.to(message.player.uid).emit("game/turn", "Not ur turn!");
+    }
+  }
+
+  private handleLobbyLeave(message: LobbyRequest) {
+    if (this.lobbies.hasLobby(message.uid)) {
+      this.lobbies.removePlayer(message);
+      if (this.lobbies.getLobby(message.uid)!.players.size < 1) {
+        this.lobbies.removeLobby(message.uid);
+      }
+    }
+  }
+
+  private handleDisconnect(socket: Socket, userUid: string) {
+    this.userHandler.onDisconnect(socket.id);
+    this.socketUsers.delete(userUid);
+    console.log(`User ${userUid} with Socket ${socket.id} disconnected`);
   }
 }
