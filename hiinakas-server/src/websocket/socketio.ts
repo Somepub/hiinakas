@@ -82,11 +82,11 @@ export class SocketIoServer {
 
       let user = await this.db.getUser(userUid);
 
-      if (user.name !== name) {
+      if (user?.name !== name) {
         user.name = name;
       }
 
-      if (user.publicUid !== publicUid) {
+      if (user?.publicUid !== publicUid) {
         user.publicUid = publicUid;
       }
 
@@ -111,19 +111,17 @@ export class SocketIoServer {
           .in(message.requestToPlayerUid)
           .emit("lobby/invite", req);
 
-        const payload = JSON.stringify({ title: "Gamerequest", body: `Gamerequest from ${message.callerPlayerUid}` });
+        /*const payload = JSON.stringify({ title: "Gamerequest", body: `Gamerequest from ${message.callerPlayerUid}` });
         const user = this.userHandler.getUsers().find( user => user.publicUid === message.requestToPlayerUid);
-        const textencoder = new TextEncoder();
 
         const sendPushSub = {
-          endpoint: user?.pushSubscription.endpoint!,
+          endpoint: user?.pushSubscription?.endpoint!,
           keys: {
               p256dh: user?.pushSubscription?.keys!["p256dh"]!,
               auth: user?.pushSubscription.keys!["auth"]!
           }
          };
-         console.log("huh", sendPushSub)
-        webpush.sendNotification(sendPushSub, payload);
+        webpush.sendNotification(sendPushSub, payload);*/
       });
 
       socket.on("lobby/leave", async (message: LobbyRequest) => {

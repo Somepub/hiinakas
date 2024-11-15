@@ -6,7 +6,6 @@ import { Seat as OpponentSeat } from "@components/opponent/seat";
 import { useStore } from "@stores/stores";
 import { observer } from "mobx-react-lite";
 import TurnNotification from "@components/turn/turnNotification";
-import background from "@assets/area/menu_background.jpg";
 
 const GameView = observer(() => {
   const { gameInstance } = useStore();
@@ -28,7 +27,7 @@ const GameView = observer(() => {
       )}
       <>
         <TurnNotification />
-        <div style={{ backgroundImage: background, backgroundColor: "black" }} id={styles.mainwrapper}>
+        <div style={{backgroundColor: "black" }} id={styles.mainwrapper}>
           <OpponentSeat />
           <Table />
           <PlayerSeat />

@@ -93,20 +93,12 @@ export class GameInstance {
     makeAutoObservable(this);
     try {
       when( () => this.myName != "", () => {
-        this.registerServiceWorker()
-        .then((_) => {
-          console.log("ff", this.userUid, this.myName);
+        when( () => this.userUid != null, () => {
           this.listenGame();
           this.iswebSocketConnected = true;
-        })
-        .catch(console.error);
+        });
       });
-      
-    } catch (ex) {
-      console.log(
-        "Oh cool. Your browser requires a button to be pressed before we can notify you. Ok. \nBelow on the onclick we'll take care of that."
-      );
-    }
+    } catch {}
   }
 
   setIsNotificationsEnabled(newIsNotificationsEnabled: boolean) {
@@ -159,7 +151,7 @@ export class GameInstance {
       sub: JSON.stringify(this.subscription),
     });
     const decoder = new TextDecoder();
-    this.socketIO = io("ws://192.168.1.2:3000" /*"wss://godhaze.com:3000"*/, {
+    this.socketIO = io("ws://localhost:3000" /*"wss://godhaze.com:3000"*/, {
       secure: true,
       rejectUnauthorized: true,
       query: {
@@ -177,7 +169,6 @@ export class GameInstance {
         player: { uid: this.userUid, name: this.myName },
         action: 0,
       };
-      
 
       setInterval(() => {
         this.socketIO.emit("users/request", {
@@ -313,7 +304,5 @@ export class GameInstance {
     const newUserUid = userUid.split("|")[1];
     this.userUid = newUserUid;
     this.publicUid = this.localStore.getPublicUid();
-    this.stopAuth = stopAuth;
-    this.reDirectLogin = reDirectLogin;
   }
 }
