@@ -6,17 +6,13 @@ import { useStore } from "@stores/stores";
 import { Deck } from "./deck";
 import useMeasure from "react-use-measure";
 
-type Seat = {
-  index: string;
-};
-
 const Table = observer(() => {
   const [ref, bounds] = useMeasure();
   const store = useStore();
   const isMyTurn = store.gameInstance.turn.isMyTurn();
 
   React.useEffect(() => {
-    store.gameInstance.setTableZoneBounds({
+    store.gameInstance.zones.setTableZone({
       ...bounds,
     });
   });

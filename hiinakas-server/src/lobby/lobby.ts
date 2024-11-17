@@ -71,8 +71,4 @@ export class Lobby {
       socketCallback(lobbyGameResponse, player);
     }
   }
-
-  handleLobbyRequest(lobbyRequest: LobbyRequest) {
-    
-  }
 }

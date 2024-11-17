@@ -24,18 +24,16 @@ export class Instance {
   playerCount: number;
   turnMoves: number;
   init: boolean;
-  canPlayMove: boolean;
 
   constructor(players: LobbyPlayer[]) {
     this.uid = v4();
-    this.table = new Table();
+    this.table = new Table(this);
     this.deck = new Deck();
     this.turnIndex = 0;
     this.turnMoves = 0;
     this.playerCount = 2;
     this.players = [];
     this.init = false;
-    this.canPlayMove = true;
 
     for (const player of players) {
       this.players.push(new Player(player.uid, player.name));
@@ -56,32 +54,21 @@ export class Instance {
     return this.init;
   }
 
-  resetPlayMove() {
-    this.canPlayMove = true;
-  }
-
   playCard(cardId: string): boolean {
     const currPlayer = this.players[this.turnIndex];
     const currCard = currPlayer.getCard(cardId);
     if (this.table.isCardPlayable(currCard!)) {
-      if (this.canPlayMove) {
         const playCard = currPlayer.playCard(cardId);
-        const checkCards = currPlayer.getCards(false) as Card[];
-        this.canPlayMove =
-          checkCards.filter((card) => card?.getRank() === currCard?.getRank())
-            .length > 0;
-
+        
         if (currCard?.getEffect() === CARD_EFFECT.DESTROY) {
           this.table.clear();
-          this.canPlayMove = true;
-          this.turnMoves = 0;
+          this.setTurnMoves(0);
           this.lookNextTurn(currPlayer);
         } else {
           this.table.placeCard(playCard!);
-          this.turnMoves = this.turnMoves + 1;
+          this.setTurnMoves(this.turnMoves + 1);
         }
         return true;
-      }
     }
     return false;
   }
@@ -120,8 +107,12 @@ export class Instance {
     this.lookNextTurn(this.players[this.turnIndex]);
     this.drawCard(this.players[this.turnIndex]);
     this.nextTurn();
-    this.turnMoves = 0;
+    this.setTurnMoves(0);
     return true;
+  }
+
+  setTurnMoves(moves: number) {
+    this.turnMoves = moves;
   }
 
   getCurrentPlayer(): Player {
@@ -212,6 +203,10 @@ export class Instance {
         hiddenCards: jsonHiddenCards,
       };
     });
+  }
+
+  getTurnMoves() {
+    return this.turnMoves;
   }
 
   private nextTurn() {

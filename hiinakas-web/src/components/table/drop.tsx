@@ -15,8 +15,8 @@ export const TableCardDrop = observer(() => {
   const isMyTurn: boolean = store.gameInstance.turn.isMyTurn();
   const containerTopOffset = bounds.top;
   const containerLeftOffset = bounds.left;
-  const startY = store?.gameInstance?.opponentZoneBounds?.top - containerTopOffset;
-  const startX = store?.gameInstance?.opponentZoneBounds?.left - containerLeftOffset;
+  const startY = store?.gameInstance?.zones?.opponentZone?.top - containerTopOffset;
+  const startX = store?.gameInstance?.zones?.opponentZone?.left - containerLeftOffset;
 
 
   const from = (_i: number) => ({
@@ -40,7 +40,7 @@ export const TableCardDrop = observer(() => {
 
 
   React.useEffect(() => {
-    store.gameInstance.setDropZoneBound({
+    store.gameInstance.zones.setDropZone({
       ...bounds,
     });
   });

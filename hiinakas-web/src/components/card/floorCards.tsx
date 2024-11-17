@@ -7,7 +7,6 @@ import { FloorCardJson } from "@types";
 
 export const FloorCards = observer((attr: { cards: FloorCardJson[], style: any }) => {
     const from = (_i: number) => ({ x: 0, rot: 0, scale: 1, y: -1000 });
-    console.log("wtf", attr.cards)
     const to = (i: number) => ({
       x: 0,
       y: 0,
@@ -15,7 +14,7 @@ export const FloorCards = observer((attr: { cards: FloorCardJson[], style: any }
       zIndex: i,
     });
   
-    const [props, api] = useSprings(attr.cards.length, (i) => ({
+    const [props] = useSprings(attr.cards.length, (i) => ({
       ...to(i),
       from: from(i),
     }));

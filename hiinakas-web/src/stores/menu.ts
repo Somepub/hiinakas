@@ -1,8 +1,18 @@
 import { makeAutoObservable, reaction, when } from "mobx";
 import { GameInstance } from "./gameInstance";
 import { v4 } from "uuid";
-import { LobbyInviteRequest, LobbyInviteResponse, LobbyJoinRequest, LobbyMaxPlayerChange, LobbyPlayer, LobbyRequest, PublicLobbyPlayer } from "@types";
-import addNotification from 'react-push-notification';
+import { LobbyInviteRequest, LobbyInviteResponse, LobbyJoinRequest, LobbyMaxPlayerChange, LobbyRequest, PublicLobbyPlayer } from "@types";
+
+const SOCKET_EVENTS = {
+  LOBBY_INVITE: 'lobby/invite',
+  LOBBY_STATUS: 'lobby/status',
+  LOBBY_CONNECT: 'lobby/connect',
+  LOBBY_LEAVE: 'lobby/leave',
+  LOBBY_REQUEST: 'lobby/request',
+  LOBBY_READY: 'lobby/ready',
+  LOBBY_START: 'lobby/start',
+  LOBBY_MAX_PLAYERS: 'lobby/maxPlayers',
+} as const;
 
 export enum OpponentState {
   ADD,
@@ -27,54 +37,66 @@ export class Menu {
   gameInvite: LobbyInviteRequest = null;
   isSelfOwner: boolean = false;
   isLobbyReady: boolean = false;
-  
+
   constructor(gameInstance: GameInstance) {
     this.gameInstance = gameInstance;
     makeAutoObservable(this);
     this.initOpponents();
-    when(() => this.gameInstance.iswebSocketConnected, () => {
-      this.gameInstance.socketIO.on("lobby/invite", (msg: LobbyInviteRequest) => {
-        var title = "Hiinakas game invite";
-        var body = `Game invite from: ${msg.senderPlayerUid}`;
-        var notification = new Notification(title, { body });
-        //navigator.serviceWorker.ready.then( reg => { reg.showNotification("your arguments goes here")})
-        console.log("game invite????",msg);
-        this.setGameInvite(msg);
-      });
+    when(() => this.gameInstance.iswebSocketConnected, this.initializeSocketListeners);
+    reaction(() => this.maxPlayers, this.reset);
+  }
 
-      this.gameInstance.socketIO.on("lobby/status", (msg: PublicLobbyPlayer[]) => {
-        console.log("lobby status",msg, gameInstance.publicUid)
-        msg.forEach( player => {
-          if(this.gameInstance.publicUid === player.uid && player.owner && !this.isSelfOwner) {
-            this.isSelfOwner = true;
-          }
+  private initializeSocketListeners = () => {
+    const socketIO = this.gameInstance.socketManager.socket;
+    socketIO.on(SOCKET_EVENTS.LOBBY_INVITE, this.handleLobbyInvite);
+    socketIO.on(SOCKET_EVENTS.LOBBY_STATUS, this.handleLobbyStatus);
+  }
 
-          if(this.gameInstance.publicUid === player.uid && !player.owner && this.isSelfOwner) {
-            this.isSelfOwner = false;
-          }
-        });
-        this.isLobbyReady = msg.every( player => player.ready) && msg.length > 1;
-        const lobbyPlayers = msg.filter( player => player.uid !== this.gameInstance.publicUid);
-        console.log(lobbyPlayers, this.gameInstance.publicUid, lobbyPlayers.length > 0 &&  lobbyPlayers[0].uid )
-        this.opponents.forEach( (opponent, i) => {
-            try {
-              const lobbyPlayer = lobbyPlayers[i];
-              if(lobbyPlayer) {
-                this.updateOpponent(opponent.uid, OpponentState.JOINED, lobbyPlayer);
-              }
-            }
-            catch {}
-        });
-      });
-    });
+  private handleLobbyInvite = (msg: LobbyInviteRequest) => {
+    try {
+      const title = "Hiinakas game invite";
+      const body = `Game invite from: ${msg.senderPlayerUid}`;
+      new Notification(title, { body });
+      this.setGameInvite(msg);
+    } catch (error) {
+      console.error('Error handling lobby invite:', error);
+    }
+  }
 
-    reaction( () => this.maxPlayers, () => {
-        this.reset();
+  private handleLobbyStatus = (players: PublicLobbyPlayer[]) => {
+    try {
+      this.updateOwnerStatus(players);
+      this.updateLobbyReadyStatus(players);
+      this.updateOpponentsStatus(players);
+    } catch (error) {
+      console.error('Error handling lobby status:', error);
+    }
+  }
+
+  private updateOwnerStatus(players: PublicLobbyPlayer[]) {
+    const selfPlayer = players.find(player => player.uid === this.gameInstance.player.publicUid);
+    if (selfPlayer) {
+      this.isSelfOwner = selfPlayer.owner;
+    }
+  }
+
+  private updateLobbyReadyStatus(players: PublicLobbyPlayer[]) {
+    this.isLobbyReady = players.every(player => player.ready) && players.length > 1;
+  }
+
+  private updateOpponentsStatus(players: PublicLobbyPlayer[]) {
+    const lobbyPlayers = players.filter(player => player.uid !== this.gameInstance.player.publicUid);
+    
+    this.opponents.forEach((opponent, i) => {
+      const lobbyPlayer = lobbyPlayers[i];
+      if (lobbyPlayer) {
+        this.updateOpponent(opponent.uid, OpponentState.JOINED, lobbyPlayer);
+      }
     });
   }
 
-  reset() {
-    this.opponents = []
+  reset = () => {
+    this.opponents = [];
     this.isSelfOwner = true;
     this.isLobbyReady = false;
     this.initOpponents();
@@ -85,17 +107,8 @@ export class Menu {
   }
 
   initOpponents() {
-    
     for (let index = 0; index < this.maxPlayers - 1; index++) {
-      try {
-        if(this.opponents[index].state === OpponentState.ADD) {
-          this.addBlankOpponent();
-        }
-      }
-      catch {
-        this.addBlankOpponent();
-      }
-        
+     this.addBlankOpponent();
     }
   }
 
@@ -117,9 +130,11 @@ export class Menu {
 
   updateOpponent(uid: string, state: OpponentState, user?: PublicLobbyPlayer) {
     const opponent = this.opponents.find((op) => op.uid === uid);
-    opponent.state = state;
-    if (user) {
-      opponent.user = user;
+    if (opponent) {
+      opponent.state = state;
+      if (user) {
+        opponent.user = user;
+      }
     }
   }
 
@@ -127,22 +142,29 @@ export class Menu {
     const resp: LobbyInviteResponse = {
       uid: this.gameInvite.uid,
       senderPlayerUid: this.gameInvite.senderPlayerUid,
-      requestToPlayerUid: this.gameInstance.publicUid,
+      requestToPlayerUid: this.gameInstance.player.publicUid,
       result: true
-    }; 
-    this.gameInstance.socketIO.emit("lobby/invite", resp);
-    if(this.gameInstance.currentLobby !== this.gameInvite.uid) {
-      this.gameInstance.socketIO.emit("lobby/leave", {
-        uid: this.gameInstance.currentLobby,
-        player: { uid: this.gameInstance.userUid, name: this.gameInstance.myName },
+    };
+
+    const { socketManager, currentLobby, player } = this.gameInstance;
+    const socketIO = socketManager.socket;
+
+    socketIO.emit(SOCKET_EVENTS.LOBBY_INVITE, resp);
+    
+    if (currentLobby !== this.gameInvite.uid) {
+      socketIO.emit(SOCKET_EVENTS.LOBBY_LEAVE, {
+        uid: currentLobby,
+        player: { uid: player.userUid, name: player.name },
         action: 0,
       });
     }
-    this.gameInstance.socketIO.emit("lobby/connect", {
+
+    socketIO.emit(SOCKET_EVENTS.LOBBY_CONNECT, {
       uid: this.gameInvite.uid,
-      player: { uid: this.gameInstance.userUid, name: this.gameInstance.myName },
+      player: { uid: player.userUid, name: player.name },
       action: 0,
     });
+
     this.gameInvite = null;
   }
 
@@ -150,21 +172,22 @@ export class Menu {
     const resp: LobbyInviteResponse = {
       uid: this.gameInvite.uid,
       senderPlayerUid: this.gameInvite.senderPlayerUid,
-      requestToPlayerUid: this.gameInstance.publicUid,
+      requestToPlayerUid: this.gameInstance.player.publicUid,
       result: false
-    }; 
-    this.gameInstance.socketIO.emit("lobby/invite", resp);
+    };
+    const socketIO = this.gameInstance.socketManager.socket;
+    socketIO.emit(SOCKET_EVENTS.LOBBY_INVITE, resp);
     this.gameInvite = null;
   }
 
   requestUsers(requestToPlayerUid: string, slotUid: string) {
     const msg: LobbyJoinRequest = {
       uid: this.gameInstance.currentLobby,
-      callerPlayerUid: this.gameInstance.publicUid,
+      callerPlayerUid: this.gameInstance.player.publicUid,
       requestToPlayerUid
     };
-    console.log("req", msg);
-    this.gameInstance.socketIO.emit("lobby/request", msg);
+    const socketIO = this.gameInstance.socketManager.socket;
+    socketIO.emit(SOCKET_EVENTS.LOBBY_REQUEST, msg);
     this.updateOpponent(slotUid, OpponentState.PENDING);
   }
 
@@ -172,41 +195,49 @@ export class Menu {
     const msg: LobbyRequest = {
       uid: this.gameInstance.currentLobby,
       player: {
-        uid: this.gameInstance.userUid,
-        name: this.gameInstance.myName,
+        uid: this.gameInstance.player.userUid,
+        name: this.gameInstance.player.name,
         ready: true
       }
     };
-    this.gameInstance.socketIO.emit("lobby/ready", msg);
+    const socketIO = this.gameInstance.socketManager.socket;
+    socketIO.emit(SOCKET_EVENTS.LOBBY_READY, msg);
   }
 
   findMatch() {
     const msg: LobbyRequest = {
       uid: this.gameInstance.currentLobby,
       player: {
-        uid: this.gameInstance.userUid,
-        name: this.gameInstance.myName,
+        uid: this.gameInstance.player.userUid,
+        name: this.gameInstance.player.name,
         ready: true
       }
     };
-    this.gameInstance.socketIO.emit("lobby/start", msg);
+    const socketIO = this.gameInstance.socketManager.socket;
+    socketIO.emit(SOCKET_EVENTS.LOBBY_START, msg);
   }
 
   changeMaxPlayers(increase: boolean) {
-    if(MAX_PLAYERS_LIMIT >= this.maxPlayers + 1) {
+    if (this.canChangeMaxPlayers(increase)) {
       const newPlayers = increase ? this.maxPlayers + 1 : this.maxPlayers - 1;
       const msg: LobbyMaxPlayerChange = {
         uid: this.gameInstance.currentLobby,
         player: {
-          uid: this.gameInstance.userUid,
-          name: this.gameInstance.myName,
+          uid: this.gameInstance.player.userUid,
+          name: this.gameInstance.player.name,
         },
         maxPlayers: newPlayers
       };
-      this.setMaxPlayers(newPlayers);
       
-      this.gameInstance.socketIO.emit("lobby/maxPlayers", msg);
+      this.setMaxPlayers(newPlayers);
+      const socketIO = this.gameInstance.socketManager.socket;
+      socketIO.emit(SOCKET_EVENTS.LOBBY_MAX_PLAYERS, msg);
     }
   }
 
+  private canChangeMaxPlayers(increase: boolean): boolean {
+    return increase ? 
+           this.maxPlayers < MAX_PLAYERS_LIMIT : 
+           this.maxPlayers > MIN_PLAYERS_LIMIT;
+  }
 }

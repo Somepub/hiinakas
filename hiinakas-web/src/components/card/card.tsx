@@ -4,7 +4,7 @@ import styles from "./card.module.scss";
 import { animated, useSpring } from "react-spring";
 import { observer, useLocalObservable } from "mobx-react-lite";
 import { useStore } from "@stores/stores";
-import { GameInstanceAction, CARD_EFFECT, CardJson, FloorCardJson, HiddenCardJson } from "@types";
+import { CARD_EFFECT, CardJson, FloorCardJson, HiddenCardJson } from "@types";
 
 export type CardT = {
   card: CardJson | FloorCardJson | HiddenCardJson;
@@ -55,10 +55,10 @@ const Card = observer((cardT: CardT) => {
 
   const handleDrop = () => {
     if (
-      dragPos[0] < store.gameInstance.dropZoneBounds.right &&
-      dragPos[0] > store.gameInstance.dropZoneBounds.left &&
-      dragPos[1] > store.gameInstance.dropZoneBounds.top &&
-      dragPos[1] < store.gameInstance.dropZoneBounds.bottom
+      dragPos[0] < store.gameInstance.zones.dropZone.right &&
+      dragPos[0] > store.gameInstance.zones.dropZone.left &&
+      dragPos[1] > store.gameInstance.zones.dropZone.top &&
+      dragPos[1] < store.gameInstance.zones.dropZone.bottom
     ) {
       const card = cardT?.card! as CardJson;
       if(!store.gameInstance.turn.isMyTurn()) return setDragOffset([0, 0]);

@@ -18,19 +18,9 @@ export class Hand {
     if(_cards) {
       this.cards.splice(0, this.cards.length, ..._cards);
     }
-
-    const mockCards: CardJson[] = [
-      {uid: "asd11", rank: 1, suit: 1, effect: 0},
-      {uid: "asd112", rank: 2, suit: 0, effect: 1},
-      {uid: "asd113", rank: 0, suit: 2, effect: 0},
-      {uid: "asd11", rank: 1, suit: 1, effect: 0},
-
-    ];
-   // this.cards.splice(0, mockCards.length, ...mockCards);
   }
 
   setFloorCards(_cards: FloorCardJson[]) {
-    console.log("FLOOR?", _cards)
     if(_cards) {
       this.floorCards.splice(0, this.floorCards.length, ..._cards);
     }

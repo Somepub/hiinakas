@@ -7,37 +7,51 @@ import { UserPrompt } from "@components/prompt/userprompt";
 import { useAuth0 } from "@auth0/auth0-react";
 import { v4 } from "uuid";
 
-export const MainView = observer(() => {
+const MainViewSwitch = observer(() => {
     const { gameInstance } = useStore();
-    
-    //const { user, isAuthenticated, isLoading, loginWithRedirect, logout } = useAuth0();
-    const isDev = true;
-    const isGameView = true;
+    return (
+        <>
+            {!gameInstance.player.name && <UserPrompt />}
+            {gameInstance.player.name && gameInstance.player.publicUid && gameInstance.player.userUid && !gameInstance.gameReady && <MenuView />}
+            {gameInstance.gameReady && <GameView />}
+        </>
+    );
+});
+
+const MainProdView = observer(() => {
+    const { user, isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
+    const { gameInstance } = useStore();
 
     useEffect(() => {
-        /*(async function login() {
-                if (!isLoading && !user) {
-                    await loginWithRedirect();
-                }
+        (async function login() {
+            if (!isLoading && !user) {
+                await loginWithRedirect();
+            }
 
-                if(user) {
-                    gameInstance.setUserUid(user.sub, logout, loginWithRedirect);
-                }
-        })();*/
-        if(isDev) {
-            gameInstance.setUserUid("dev|"+v4(), null, null);
-        }
-    }, [/*isLoading*/]);
+            if (user) {
+                gameInstance.player.setUserUid(user.sub);
+            }
+        })();
+    }, [isLoading]);
 
-    
-    if (/*isAuthenticated ||*/ isDev) {
-        return (
-            <>
-                {!gameInstance.myName && <UserPrompt />}
-                {gameInstance.myName && gameInstance.publicUid && gameInstance.userUid && !gameInstance.gameReady && <MenuView />}
-                {gameInstance.gameReady && <GameView />}
-            </>
-        );
-    }
-    
+    return (
+        <>
+            {isAuthenticated && <MainViewSwitch />}
+        </>
+    );
 });
+
+const MainDevView = observer(() => {
+    const { gameInstance } = useStore();
+    useEffect(() => {
+        const userUid = "dev|" + v4();
+        gameInstance.player.setUserUid(userUid);
+    }, []);
+
+    return <MainViewSwitch />;
+});
+
+export const MainView = () => {
+    const isDev = import.meta.env.DEV;
+    return isDev ? <MainDevView /> : <MainProdView />;
+};

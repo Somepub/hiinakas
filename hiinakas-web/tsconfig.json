@@ -15,9 +15,6 @@
       "resolveJsonModule":true,
       "lib": ["es2019","dom", "dom.iterable"],
       "paths": {
-        "@stores": [
-          "stores/index"
-        ],
         "@components/*": ["components/*"],
         "@views/*": ["views/*"],
         "@stores/*" : ["stores/*"],
@@ -29,9 +26,10 @@
       "node_modules"
     ],
     "include": [
-      "./src", 
+      "src", 
       "../../hiinakas-common/src",
-      "./declaration.d.ts",
+      "declaration.d.ts",
+      "global.d.ts",
     ]
     
   }

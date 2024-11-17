@@ -6,7 +6,6 @@ import { observer } from "mobx-react-lite";
 import { useStore } from "@stores/stores";
 import Select from "react-select";
 import { Opponent, OpponentState } from "@stores/menu";
-import menuBackground from "@assets/area/menu_background.jpg";
 
 const MenuLogo = () => {
   return (
@@ -39,9 +38,9 @@ const MenuContentSelf = observer(() => {
 
   return (
     <div id={styles.menuContentSelf}>
-      <div id={styles.menuContentName}>{gameInstance.myName}</div>
+      <div id={styles.menuContentName}>{gameInstance.player.name}</div>
       <div id={styles.menuContentIcon}>
-        <RandomAvatar name={gameInstance.publicUid} size={100} />
+        <RandomAvatar name={gameInstance.player.publicUid} size={100} />
       </div>
     </div>
   );
@@ -50,8 +49,8 @@ const MenuContentSelf = observer(() => {
 const MenuContentOptions = () => {
   return (
     <div id={styles.menuContentOptions}>
-      <div id={styles.menuContentOptionsProfile}>PROFILE</div>
-      <div id={styles.menuContentOptionsSettings}>SETTINGS</div>
+      <div style={{color: "gray"}} id={styles.menuContentOptionsProfile}>PROFILE</div>
+      <div style={{color: "gray"}} id={styles.menuContentOptionsSettings}>SETTINGS</div>
     </div>
   );
 };
@@ -60,9 +59,9 @@ const MenuContentPlayers = observer(() => {
   const { menu } = useStore();
   return (
     <div id={styles.menuContentPlayers}>
-      <div onClick={() => menu.changeMaxPlayers(false)} id={styles.menuContentPlayersDown}>{"<"}</div>
+      <div style={{color: "gray"}} onClick={() => menu.changeMaxPlayers(false)} id={styles.menuContentPlayersDown}>{"<"}</div>
       <div id={styles.menuContentPlayersLabel}>PLAYERS: 2</div>
-      <div onClick={() => menu.changeMaxPlayers(true)} id={styles.menuContentPlayersUp}>{">"}</div>
+      <div style={{color: "gray"}} onClick={() => menu.changeMaxPlayers(true)} id={styles.menuContentPlayersUp}>{">"}</div>
     </div>
   );
 });
@@ -148,6 +147,8 @@ const customStyles = {
 const MenuContentOpponentAddSearch = observer(({ uid }: { uid: string }) => {
   const [selectedUser, setSelectedUser] = useState<string>(null);
   const { menu, gameInstance } = useStore();
+  const usersSet = [...new Map(gameInstance.player.users?.map((user) => [user.uid, user])).values()];
+
   return (
     <div className={styles.menuContentOpponentAddWrapper}>
       <div className={styles.menuContentOpponentAddSearch}>
@@ -156,7 +157,7 @@ const MenuContentOpponentAddSearch = observer(({ uid }: { uid: string }) => {
           defaultValue={null}
           isSearchable={true}
           name="color"
-          options={gameInstance?.users?.map((user) => {
+          options={usersSet?.map((user) => {
             return { label: user.name, value: user.uid };
           })}
           onChange={(e) => {
@@ -222,7 +223,7 @@ export const MainMenu = observer(() => {
   });
 
   return (
-    <animated.div style={{...styleEffect, backgroundImage: `url(${menuBackground})`}} id={styles.menu}>
+    <animated.div style={{...styleEffect}} id={styles.menu}>
       {menu.gameInvite?.uid && <MenuNotification />}
       <MenuLogo />
       <MenuContent />

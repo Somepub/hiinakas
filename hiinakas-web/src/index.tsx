@@ -5,8 +5,9 @@ import { Auth0Provider } from '@auth0/auth0-react';
 import { createRoot } from "react-dom/client";
 
 const ChineseDurak = () => {
-  const isDev = true;
-
+  const isDev = import.meta.env.DEV;
+  window.isDev = isDev;
+  
   if(isDev) {
     return (
       <StoreProvider>

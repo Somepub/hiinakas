@@ -1,0 +1,14 @@
+{
+    "name": "hiinakas",
+    "version": "1.0.0",
+    "repository": "https://github.com/somepub/hiinakas",
+    "author": "Somepub",
+    "license": "MIT",
+    "scripts": {
+        "postinstall": "cd hiinakas-server && npm install && cd ../hiinakas-web && npm install",
+        "dev": "concurrently \"cd hiinakas-web && npm run dev\" \"cd hiinakas-server && npm run dev\""
+    },
+    "devDependencies": {
+        "concurrently": "latest"
+    }
+}

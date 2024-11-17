@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import styles from "./hand.module.scss";
 import { useStore } from "@stores/stores";
 import Card from "@components/card/card";
@@ -13,7 +13,7 @@ export const Hand = observer(() => {
   const [ref, bounds] = useMeasure();
   const store = useStore();
 
-  const deckBounds = store.gameInstance?.deckZoneBounds!;
+  const deckBounds = store.gameInstance.zones.deckZone!;
   const startY =  deckBounds?.bottom - bounds.bottom;
   const deckCenterX = (deckBounds?.left + deckBounds?.right) / 2;
   const handCenterX = (bounds.left + bounds.right) / 2;
@@ -49,7 +49,7 @@ export const Hand = observer(() => {
   }};
 
   const cards = store.gameInstance.hand.getCards();
-  const [props, api] = useSprings(cards.length, (i) => ({
+  const [props] = useSprings(cards.length, (i) => ({
     ...to(i),
     from: from(i),
   }));

@@ -7,14 +7,8 @@ import { viteStaticCopy } from 'vite-plugin-static-copy'
 export default defineConfig(({ command, mode }) => {
   return {
     plugins: [
-      react(),
       tsconfigPaths(),
-      viteStaticCopy({
-        targets: [
-          { src: "./src/assets/cards", dest: "./cards" },
-          { src: "./src/assets/area", dest: "./area" },
-        ]
-      })
+      react(),
     ],
     resolve: {
       alias: {

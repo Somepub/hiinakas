@@ -32,7 +32,7 @@ export const Deck = observer(() => {
     };
 
     React.useEffect(() => {
-      store.gameInstance.setDeckZoneBounds({
+      store.gameInstance.zones.setDeckZone({
         ...bounds,
       });
     });

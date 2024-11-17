@@ -13,7 +13,7 @@ export const BackCards = observer((attr: { cards: HiddenCardJson[]; style: any }
   const [ref, bounds] = useMeasure();
   const store = useStore();
   
-  const deckBounds = store.gameInstance?.deckZoneBounds!;
+  const deckBounds = store.gameInstance.zones.deckZone!;
   const startY =  deckBounds?.bottom - bounds.bottom;
   const deckCenterX = (deckBounds?.left + deckBounds?.right) / 2;
   const handCenterX = (bounds.left + bounds.right) / 2;
@@ -33,7 +33,7 @@ export const BackCards = observer((attr: { cards: HiddenCardJson[]; style: any }
     zIndex: i,
   });
 
-  const [props, api] = useSprings(attr.cards.length, (i) => ({
+  const [props] = useSprings(attr.cards.length, (i) => ({
     ...to(i),
     from: from(i),
   }));

@@ -30,7 +30,7 @@ const PlayerIcon = observer(() => {
   const opponentName = store.gameInstance?.opponent?.name;
 
   React.useEffect(() => {
-    store.gameInstance.setOpponentZoneBounds({
+    store.gameInstance.zones.setOpponentZone({
       ...bounds,
     });
   });

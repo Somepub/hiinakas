@@ -1,5 +1,5 @@
 import React, { useContext, createContext } from "react";
-import { LocalStore } from "./localStore";
+import { LocalStore } from "../util/localStore";
 import { GameInstance } from "./gameInstance";
 import { Menu } from "./menu";
 

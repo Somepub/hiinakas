@@ -1,5 +1,5 @@
 import { Lobby } from "./lobby";
-import { LobbyRequest } from "#types";
+import { LobbyGameRequest, LobbyRequest } from "#types";
 
 export class Lobbies {
   lobbiesPool: Map<string, Lobby>;
@@ -51,5 +51,9 @@ export class Lobbies {
   isLobbyReady(lobbyRequest: LobbyRequest) {
     const lobby = this.getLobby(lobbyRequest.uid);
     return lobby?.players?.size === lobby?.maxPlayer && lobby?.getPlayers().every(player => player.ready);
+  }
+
+  endGame(lobbyRequest: LobbyGameRequest) {
+    this.removeLobby(lobbyRequest.uid);
   }
 }

@@ -1,5 +1,6 @@
 import { CARD_EFFECT, CardJson } from "#types";
 import { Card } from "./card";
+import { Instance } from "./instance";
 
 type Turn = {
   uid: string;
@@ -9,8 +10,11 @@ type Turn = {
 
 export class Table {
   private cardsPool: Map<string, Card> = new Map();
+  private instance: Instance;
 
-  constructor() { }
+  constructor(instance: Instance) {
+    this.instance = instance;
+  }
 
   placeCard(card: Card) {
     if(card) {
@@ -32,16 +36,30 @@ export class Table {
     return [...this.cardsPool.values()];
   }
 
+  lastCard() {
+    const cards = this.getCards() as Card[];
+    return cards[cards.length - 1];
+  }
+
   clear() {
     this.cardsPool.clear();
   }
 
   isCardPlayable(card: Card) {
-    const cards = this.getCards() as Card[];
-    const lastCard = cards[this.getCards().length - 1];
+    const lastCard = this.lastCard();
     if (!lastCard || card?.getEffect() === CARD_EFFECT.DESTROY) return true;
     const lastCardEffect = lastCard?.getEffect();
     const currentCardEffect = card?.getEffect();
+    const turnMoves = this.instance.getTurnMoves();
+
+    if (this.lastCard()?.getRank() === card?.getRank()) {
+      this.instance.setTurnMoves(0);
+      return true;
+    }
+
+    if(turnMoves > 0) {
+      return false;
+    }
 
     if (
       currentCardEffect === CARD_EFFECT.NO_EFFECT &&

@@ -1,4 +1,4 @@
-import { makeAutoObservable, reaction } from "mobx";
+import { action, makeAutoObservable, reaction } from "mobx";
 import { Md5 } from "ts-md5";
 import { GameInstanceAction, GameInstanceMessage, GameInstanceMessageAction } from "@types";
 import dropCard from "../assets/sounds/cardput.wav";
@@ -14,7 +14,7 @@ export class Turn {
   gameInstance: GameInstance;
   turnMessage : GameInstanceMessage;
   winner: string = null;
-
+  winnerTimeout: NodeJS.Timeout | null = null;
   constructor(gameInstance: GameInstance) {
     this.gameInstance = gameInstance;
     makeAutoObservable(this);
@@ -40,17 +40,20 @@ export class Turn {
   setWinner(winner: string | null, gameInstance: GameInstance) {
     if(winner) {
       this.winner = winner;
-      setTimeout( () => {
-        gameInstance.menu.reset();
-        gameInstance.gameReady = false;
-        this.winner = null;
-      }, 1000);
+      this.winnerTimeout = setTimeout( () => {
+        action(() => {    
+          gameInstance.menu.reset();
+          gameInstance.gameReady = false;
+          this.winner = null;
+          gameInstance.socketManager.setupInitialLobbyConnection();
+        })();
+      }, 15000);
     }
   }
 
   isMyTurn() {
-    if(this.gameInstance.userUid) {
-      const currHash = Md5.hashStr(this.gameInstance.userUid);
+    if(this.gameInstance.player.userUid) {
+      const currHash = Md5.hashStr(this.gameInstance.player.userUid);
       return currHash === this.currentTurnHash;
     }
     return false;

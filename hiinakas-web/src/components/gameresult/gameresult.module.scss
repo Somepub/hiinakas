@@ -1,0 +1,30 @@
+#gameResult {
+    position: absolute;;
+    width: 100vw;
+    height: 100vh;
+    font-size: 21px;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    z-index: 1112;
+    grid-template-rows: 1fr 1fr;
+
+    #gameResultText {
+        font-size: 24px;
+    }
+
+    #gameResultButton {
+        display: grid;
+        justify-content: center;
+        height: 75px;
+        background-color: rgba(37, 37, 38, 0.9294117647);
+        cursor: pointer;
+        align-content: center;
+        color: white;
+    
+        span {
+            display: grid;
+            align-content: center;
+        }
+    }
+}
