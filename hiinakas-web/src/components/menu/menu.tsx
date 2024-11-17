@@ -207,7 +207,7 @@ const MenuNotification = observer(() => {
 });
 
 const MenuGithubLogo = () => {
-  return <div id={styles.menuGithubLogo}><a href="https://github.com/Somepub/Hiinakas"><img src="../github.svg" alt="GitHub" /></a></div>;
+  return <div id={styles.menuGithubLogo}><a target="_blank" href="https://github.com/Somepub/Hiinakas"><img src="../github.svg" alt="GitHub" /></a></div>;
 };
 
 const MenuContentOpponentPending = observer(() => {
