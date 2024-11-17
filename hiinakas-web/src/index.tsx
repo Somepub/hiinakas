@@ -17,8 +17,8 @@ const ChineseDurak = () => {
 
   return (
     <Auth0Provider
-      domain="hiinakas-dev.eu.auth0.com"
-      clientId="M1vCJgHJG4wPBDPaDQJT1SWVGgKGg4C6"
+      domain={import.meta.env.VITE_AUTH0_PROD_DOMAIN}
+      clientId={import.meta.env.VITE_AUTH0_PROD_CLIENT_ID}
       authorizationParams={{
         redirect_uri: window.location.origin
       }}

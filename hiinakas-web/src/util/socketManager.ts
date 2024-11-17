@@ -13,7 +13,7 @@ const SOCKET_EVENTS = {
 } as const;
 
 const WEBSOCKET_CONFIG = {
-  DEV_URL: import.meta.env.VITE_WEBSOCKET_DEV_URL,
+  DEV_URL: "ws://localhost:3000",
   PROD_URL: import.meta.env.VITE_WEBSOCKET_PROD_URL,
   PATH: '/v1/hiinakas/',
   POLLING_INTERVAL: 2500,
