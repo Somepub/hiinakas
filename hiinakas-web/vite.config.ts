@@ -1,8 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from 'vite-tsconfig-paths'
-import path from 'path'
-import { viteStaticCopy } from 'vite-plugin-static-copy'
 
 export default defineConfig(({ command, mode }) => {
   return {
@@ -10,11 +8,6 @@ export default defineConfig(({ command, mode }) => {
       tsconfigPaths(),
       react(),
     ],
-    resolve: {
-      alias: {
-        '@common': path.resolve(__dirname, '../hiinakas-common/src/'),
-      }
-    },
     server: {
       host: '0.0.0.0',
       port: 8087,
