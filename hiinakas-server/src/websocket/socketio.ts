@@ -58,7 +58,7 @@ export class SocketIoServer {
     socket.on("lobby/start", (message: LobbyRequest) => lobbyHandler.handleLobbyStart(message));
     socket.on("lobby/leave", (message: LobbyRequest) => lobbyHandler.handleLobbyLeave(message));
     socket.on("game/turn", (message: LobbyGameRequest) => gameHandler.handleGameTurn(message));
-    socket.on("disconnect", () => this.handleDisconnect(socket, user.gameUid));
+    socket.on("disconnect", () => this.handleDisconnect(socket, user.userUid));
   }
 
   createHandlers() {

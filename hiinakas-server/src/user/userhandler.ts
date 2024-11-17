@@ -44,7 +44,6 @@ export class UserHandler {
     }
 
     async handleUserConnection(socket: Socket): Promise<User | undefined> {
-        console.log("handleUserConnection", socket.handshake.query);
         const userUid = socket.handshake?.query?.userUid as string;
         const publicUid = socket.handshake?.query?.publicUid as string;
         const name = socket.handshake?.query?.name as string;
@@ -54,24 +53,13 @@ export class UserHandler {
            socket.disconnect();
            return undefined;
         }
-      
 
         const pushSub = JSON.parse(sub) as PushSubscriptionJSON;
 
-        console.log("sub", JSON.stringify([...this.socketUsers.values()]));
-        console.log("userUid", !userUid);
-        console.log("publicUid", !publicUid);
-        console.log("name", !name);
-        console.log("socketUsers", this.socketUsers.has(userUid));
-        console.log("all", !userUid || !publicUid || !name || this.socketUsers.has(userUid));
-
         if (!userUid || !publicUid || !name || this.socketUsers.has(userUid)) {
-            console.log("disconnect??");
             socket.disconnect();
             return undefined;
         }
-
-        console.log("sub2");
 
         this.socketUsers.set(userUid, socket.id);
         const user = await this.setupUser(userUid, publicUid, name, pushSub);
@@ -82,7 +70,6 @@ export class UserHandler {
     }
 
     private async setupUser(userUid: string, publicUid: string, name: string, pushSub: PushSubscriptionJSON) {
-        console.log("setupUser", userUid, publicUid, name, pushSub);
         const userExists = await this.db.getUserExists(userUid);
         if (!userExists) {
             this.db.createUser(userUid, publicUid, name);
