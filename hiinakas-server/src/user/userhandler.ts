@@ -59,6 +59,11 @@ export class UserHandler {
         const pushSub = JSON.parse(sub) as PushSubscriptionJSON;
 
         console.log("sub", JSON.stringify([...this.socketUsers.values()]));
+        console.log("userUid", !userUid);
+        console.log("publicUid", !publicUid);
+        console.log("name", !name);
+        console.log("socketUsers", this.socketUsers.has(userUid));
+        console.log("all", !userUid || !publicUid || !name || this.socketUsers.has(userUid));
 
         if (!userUid || !publicUid || !name || this.socketUsers.has(userUid)) {
             console.log("disconnect??");
