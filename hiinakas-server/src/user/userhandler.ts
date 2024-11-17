@@ -61,6 +61,7 @@ export class UserHandler {
         console.log("sub", JSON.stringify([...this.socketUsers.values()]));
 
         if (!userUid || !publicUid || !name || this.socketUsers.has(userUid)) {
+            console.log("disconnect??");
             socket.disconnect();
             return undefined;
         }
