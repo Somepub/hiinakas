@@ -206,6 +206,10 @@ const MenuNotification = observer(() => {
   );
 });
 
+const MenuGithubLogo = () => {
+  return <div id={styles.menuGithubLogo}><a href="https://github.com/hiinakas"><img src="../github.svg" alt="GitHub" /></a></div>;
+};
+
 const MenuContentOpponentPending = observer(() => {
   return <div id={styles.menuContentOpponentPending}>Waiting response...</div>;
 });
@@ -227,6 +231,7 @@ export const MainMenu = observer(() => {
       {menu.gameInvite?.uid && <MenuNotification />}
       <MenuLogo />
       <MenuContent />
+      <MenuGithubLogo />
     </animated.div>
   );
 });
