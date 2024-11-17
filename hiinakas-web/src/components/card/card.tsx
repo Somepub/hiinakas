@@ -71,10 +71,10 @@ const Card = observer((cardT: CardT) => {
 
   const inComingStyle = cardT.style;
   const card = cardT?.card! as CardJson;
-  let imgPath = cardT.opponent && !cardT.floorCard ? `url(./cards/back.svg)` :`url(./cards/${card.suit}${card.rank}.png)`;
+  let imgPath = cardT.opponent && !cardT.floorCard ? `url(../cards/back.svg)` :`url(../cards/${card.suit}${card.rank}.png)`;
 
   if(cardT.deck) {
-    imgPath = "url(./cards/back.svg)";
+    imgPath = "url(../cards/back.svg)";
   }
 
   if(card.effect === CARD_EFFECT.TRANSPARENT && cardT.table) {

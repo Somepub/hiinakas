@@ -3,7 +3,7 @@
   display: grid;
   grid-area: table;
   grid-template-columns: 1fr 1fr 1fr;
-  background-image: url("./area/table.jpg");
+  background-image: url("../area/table.jpg");
   background-size: contain;
   background-position: center center;
   border-left: 8px solid #733c13;
@@ -75,7 +75,7 @@
 }
 
 #tableBorder {
-  background-image: url("./area/tableborder.png");
+  background-image: url("../area/tableborder.png");
   background-size: 100%;
   background-repeat: no-repeat;
   background-position: center center;
