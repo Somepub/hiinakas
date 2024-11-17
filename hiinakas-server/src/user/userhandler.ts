@@ -54,6 +54,7 @@ export class UserHandler {
            socket.disconnect();
            return undefined;
         }
+        console.log("sub");
 
         const pushSub = JSON.parse(sub) as PushSubscriptionJSON;
 
@@ -71,6 +72,7 @@ export class UserHandler {
     }
 
     private async setupUser(userUid: string, publicUid: string, name: string, pushSub: PushSubscriptionJSON) {
+        console.log("setupUser", userUid, publicUid, name, pushSub);
         const userExists = await this.db.getUserExists(userUid);
         if (!userExists) {
             this.db.createUser(userUid, publicUid, name);
