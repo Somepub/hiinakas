@@ -2,6 +2,10 @@
 
 A multiplayer card game that unfolds in three phases. Begin with your hand cards, progress to your face-up cards once the deck empties, and finally face the challenge of your hidden cards. Strategic play and timing are key to victory.
 
+## Reference/Demo
+
+https://hiinakas.com
+
 ## How to run
 
 ### Source
