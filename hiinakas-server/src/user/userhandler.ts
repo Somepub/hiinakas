@@ -54,14 +54,18 @@ export class UserHandler {
            socket.disconnect();
            return undefined;
         }
-        console.log("sub");
+      
 
         const pushSub = JSON.parse(sub) as PushSubscriptionJSON;
+
+        console.log("sub");
 
         if (!userUid || !publicUid || !name || this.socketUsers.has(userUid)) {
             socket.disconnect();
             return undefined;
         }
+
+        console.log("sub2");
 
         this.socketUsers.set(userUid, socket.id);
         const user = await this.setupUser(userUid, publicUid, name, pushSub);
