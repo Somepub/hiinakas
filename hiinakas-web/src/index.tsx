@@ -6,7 +6,6 @@ import { createRoot } from "react-dom/client";
 
 const ChineseDurak = () => {
   const isDev = import.meta.env.DEV;
-  window.isDev = isDev;
   
   if(isDev) {
     return (

@@ -13,11 +13,11 @@ const SOCKET_EVENTS = {
 } as const;
 
 const WEBSOCKET_CONFIG = {
-  DEV_URL: 'ws://localhost:3000',
-  PROD_URL: 'wss://godhaze.com:3000',
+  DEV_URL: import.meta.env.VITE_WEBSOCKET_DEV_URL,
+  PROD_URL: import.meta.env.VITE_WEBSOCKET_PROD_URL,
   PATH: '/v1/hiinakas/',
   POLLING_INTERVAL: 2500,
-  CONNECT_DELAY: 100
+  CONNECT_DELAY: 100  
 } as const;
 
 export class SocketManager {
@@ -34,7 +34,7 @@ export class SocketManager {
   }
 
   private initializeSocket() {
-    this.socket = io(WEBSOCKET_CONFIG.DEV_URL, {
+    this.socket = io(import.meta.env.DEV ? WEBSOCKET_CONFIG.DEV_URL : WEBSOCKET_CONFIG.PROD_URL, {
       secure: true,
       rejectUnauthorized: true,
       query: {

@@ -1,5 +1,5 @@
 import { Instance } from "../game/instance";
-import { LobbyPlayer, GameInstanceAction, GameTurnFeedback, LobbyGameResponse, LobbyRequest } from "#types";
+import { LobbyPlayer, GameTurnFeedback, LobbyGameResponse } from "#types";
 
 export type InternalLobbyPlayer = LobbyPlayer & { publicUid?: string};
 

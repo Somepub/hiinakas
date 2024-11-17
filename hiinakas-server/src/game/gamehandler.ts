@@ -6,7 +6,7 @@ import {
   GameInstanceMessageAction,
   LobbyGameRequest,
 } from "#types";
-import { InternalLobbyPlayer, Lobby } from "lobby/lobby";
+import { Lobby } from "lobby/lobby";
 import { Instance } from "./instance";
 import { Player } from "./player";
 

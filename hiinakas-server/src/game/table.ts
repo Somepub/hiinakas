@@ -2,12 +2,6 @@ import { CARD_EFFECT, CardJson } from "#types";
 import { Card } from "./card";
 import { Instance } from "./instance";
 
-type Turn = {
-  uid: string;
-  card: Card;
-  turnAuthor: string;
-};
-
 export class Table {
   private cardsPool: Map<string, Card> = new Map();
   private instance: Instance;
