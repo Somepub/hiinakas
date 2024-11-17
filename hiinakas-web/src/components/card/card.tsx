@@ -55,10 +55,10 @@ const Card = observer((cardT: CardT) => {
 
   const handleDrop = () => {
     if (
-      dragPos[0] < store.gameInstance.zones.dropZone.right &&
-      dragPos[0] > store.gameInstance.zones.dropZone.left &&
-      dragPos[1] > store.gameInstance.zones.dropZone.top &&
-      dragPos[1] < store.gameInstance.zones.dropZone.bottom
+      dragPos[0] < store.gameInstance.zones.tableZone.right &&
+      dragPos[0] > store.gameInstance.zones.tableZone.left &&
+      dragPos[1] > store.gameInstance.zones.tableZone.top &&
+      dragPos[1] < store.gameInstance.zones.tableZone.bottom
     ) {
       const card = cardT?.card! as CardJson;
       if(!store.gameInstance.turn.isMyTurn()) return setDragOffset([0, 0]);
