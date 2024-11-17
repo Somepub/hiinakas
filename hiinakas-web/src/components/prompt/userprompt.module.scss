@@ -1,7 +1,7 @@
 #userprompt {
     display: grid;
-    height: calc(var(--vh) * 100);
-    width: 100vw;
+    height: 100dvh;
+    width: 100dvw;
     grid-template-rows: 100px auto auto;
     background-image: url("../area/menu_background.jpg");
     color: white;
