@@ -44,6 +44,7 @@ export class UserHandler {
     }
 
     async handleUserConnection(socket: Socket): Promise<User | undefined> {
+        console.log("handleUserConnection", socket.handshake.query);
         const userUid = socket.handshake?.query?.userUid as string;
         const publicUid = socket.handshake?.query?.publicUid as string;
         const name = socket.handshake?.query?.name as string;
