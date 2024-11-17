@@ -1,6 +1,6 @@
 # Hiinakas
 
-A multiplayer card game where strategy meets luck. Play cards wisely, use magic cards to your advantage, and be the first to empty your hand to win!
+A multiplayer card game that unfolds in three phases. Begin with your hand cards, progress to your face-up cards once the deck empties, and finally face the challenge of your hidden cards. Strategic play and timing are key to victory.
 
 ## How to run
 
@@ -24,7 +24,7 @@ To test the game, you can use two separate browsers.
 
 ## How to play
 
-<details open>
+<details>
 <summary><h2 style="display:inline-block;">Lobby</h2></summary>
 
 ### Creating/Joining a Game
@@ -39,20 +39,37 @@ To test the game, you can use two separate browsers.
 
 </details>
 
-<details open>
-<summary><h2 style="display:inline-block;">Game Rules</h2></summary>
+<details>
+<summary><h2 style="display:inline-block;">Game</h2></summary>
 
-### Basic Rules
-- Each player starts with 3 cards
-- Players must maintain 3 cards in their hand when possible
-- Game is played in turns
-- Win condition: Play all your cards when the deck is empty
+### Initial Setup
+Each player receives:
+- 3 cards in hand (drawn from deck)
+- 3 cards face-up on the table (your floor cards)
+- 3 cards face-down (your hidden cards)
+The game proceeds in turns, with players taking actions one at a time.
+
+### Game Progression
+1. Start by playing cards from your hand
+   - Continue until deck is empty
+
+2. Once deck is empty:
+   - Play remaining hand cards
+   - Then play your 3 face-up floor cards
+
+3. After floor cards:
+   - Reveal and play hidden cards one at a time
+   - Cannot see hidden cards until played
+
+4. Victory:
+   - Win by being first to play all cards
+   - Must clear hand, floor, and hidden cards
 
 ### Card Types
 #### Regular Cards
-- 3-6: Must be played on a card of equal or lower value
-- 9: Must be played on a card of equal or lower value
-- J, Q, K, A: Must be played on a card of equal or lower value
+Play these cards on equal or lower value cards:
+- Number Cards: 3, 4, 5, 6, 9
+- Face Cards: Jack, Queen, King, Ace
 
 #### Magic Cards
 - **2**: Can be played on any card
@@ -63,30 +80,29 @@ To test the game, you can use two separate browsers.
 ### Turn Structure
 1. **Play a Card**
    - Play a valid card from your hand
+   - If hand is empty and deck is empty, play from floor cards
+   - If floor cards are empty, play one random hidden card
    - Or pick up all cards from the table if you can't play
 
 2. **End Turn**
    - Can only end turn after playing a card
-   - If you have less than 3 cards, draw up to 3 (if deck has cards)
+   - If you have less than 3 cards in hand and deck has cards, draw up to 3
+   - No drawing occurs when deck is empty
 
 ### Special Rules
 - Must always try to play a card if possible
 - Picking up cards is only allowed when no valid play exists
 - The deck contains 52 standard playing cards
-- Game continues until someone wins by playing all their cards when deck is empty
+- Floor cards become playable only after the deck is empty
+- Hidden cards become playable only after floor cards are gone
+- Hidden cards are revealed one at a time randomly when played
+- Game continues until someone wins by playing all their cards
 
 </details>
 
-## Strategy Tips
-- Save magic cards (2, 7, 8, 10) for strategic moments
-- Use 10 to clear a difficult table
-- Watch your opponents' card count
-- Plan ahead when using 7 or 8
-- Consider picking up cards strategically even if you can play
-
 ## Development
 
-<details open>
+<details>
 <summary><h2 style="display:inline-block;">Technical Details</h2></summary>
 
 ### Stack
@@ -96,7 +112,8 @@ To test the game, you can use two separate browsers.
 
 </details>
 
-## TODO
+<details>
+<summary><h2 style="display:inline-block;">TODO</h2></summary>
 
 ### Full-Stack Tasks
 - [ ] **hiinakas-server & hiinakas-web:** 4 cards reset
@@ -110,15 +127,20 @@ To test the game, you can use two separate browsers.
 
 ### Frontend Tasks
 - [ ] **hiinakas-web:** Menu profile & settings
+- [ ] **hiinakas-web:** Better reusable components
 
 ### Backend Tasks
-- [ ] **hiinakas-server:** Migrate to Rust
+- [ ] **hiinakas-server:** Rewrite in Rust
 - [ ] **hiinakas-server:** Add more detailed analytics
 - [ ] **hiinakas-server:** Add more detailed monitoring
 
 ### Infrastructure Tasks
 - [ ] Add CI/CD pipeline
 - [ ] Add more detailed documentation
+
+</details>
+
+
 
 ## License
 MIT
