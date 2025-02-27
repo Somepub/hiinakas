@@ -2,6 +2,8 @@
 
 Hiinakas is a card game that is played with 2-4 players (currently only 1vs1).
 
+Demo at: https://hiinakas.com [OFFLINE]
+
 # Plans
 
 - [ ] Add 3-4 player support
