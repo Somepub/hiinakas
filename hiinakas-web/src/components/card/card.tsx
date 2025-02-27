@@ -1,27 +1,25 @@
-import React from "react";
+import React, { CSSProperties } from "react";
 import { Vector2, useDrag } from "@use-gesture/react";
 import styles from "./card.module.scss";
 import { animated, useSpring } from "react-spring";
 import { observer, useLocalObservable } from "mobx-react-lite";
 import { useStore } from "@stores/stores";
-import { GameInstanceAction, CARD_EFFECT, CardJson, FloorCardJson, HiddenCardJson } from "@types";
+import { SmallCard, Card as ProtoCard, Effect } from "@proto/card";
 
-export type CardT = {
-  card: CardJson | FloorCardJson | HiddenCardJson;
+export type CardProps = {
+  card: ProtoCard | null;
   isDraggable: boolean;
-  style?: any;
-  opponent?: boolean;
-  floorCard?: boolean;
-  deck?: boolean;
+  style?: CSSProperties;
   table?: boolean;
-}
+};
 
-export const ranks = '2 3 4 5 6 7 8 9 10 J Q K A'.split(' ');
-export const suits = '♠︎ ♥︎ ♣︎ ♦︎'.split(' ');
+export const ranks = "2 3 4 5 6 7 8 9 10 J Q K A".split(" ");
+export const suits = "♠︎ ♥︎ ♣︎ ♦︎".split(" ");
 
-const Card = observer((cardT: CardT) => {
+const Card = observer((cardT: CardProps) => {
   const store = useStore();
-  const {dragPos, dragOffset, setDragOffset, setDragPos} = useLocalObservable(() => ({
+  const { dragPos, dragOffset, setDragOffset, setDragPos } = useLocalObservable(
+    () => ({
       dragPos: [0, 0],
       dragOffset: [0, 0],
       setDragPos(state: Vector2) {
@@ -29,8 +27,9 @@ const Card = observer((cardT: CardT) => {
       },
       setDragOffset(state: Vector2) {
         this.dragOffset = state;
-      }
-  }));
+      },
+    })
+  );
 
   const bindDrag = useDrag((state) => {
     setDragOffset(state.movement);
@@ -44,58 +43,84 @@ const Card = observer((cardT: CardT) => {
     from: {
       x: 0,
       top: 0,
-      rotateY: 0
+      rotateY: 0,
     },
     to: {
       x: dragOffset[0],
       y: dragOffset[1],
-      rotateY: 0
-    }
+      rotateY: 0,
+    },
   });
 
   const handleDrop = () => {
     if (
-      dragPos[0] < store.gameInstance.dropZoneBounds.right &&
-      dragPos[0] > store.gameInstance.dropZoneBounds.left &&
-      dragPos[1] > store.gameInstance.dropZoneBounds.top &&
-      dragPos[1] < store.gameInstance.dropZoneBounds.bottom
+      dragPos[0] < store.gameInstance.zones.tableZone.right &&
+      dragPos[0] > store.gameInstance.zones.tableZone.left &&
+      dragPos[1] > store.gameInstance.zones.tableZone.top &&
+      dragPos[1] < store.gameInstance.zones.tableZone.bottom
     ) {
-      const card = cardT?.card! as CardJson;
-      if(!store.gameInstance.turn.isMyTurn()) return setDragOffset([0, 0]);
-      store.gameInstance.playCard(card.uid).then( (res) => !res && setDragOffset([0, 0]));
-
+      const card = cardT?.card! as ProtoCard;
+      if (!store.gameInstance.turn.isMyTurn) setDragOffset([0, 0]);
+      store.gameInstance
+        .playCard(card.uid)
+        .then((res) => !res && setDragOffset([0, 0]));
     } else {
       setDragOffset([0, 0]);
     }
   };
 
   const inComingStyle = cardT.style;
-  const card = cardT?.card! as CardJson;
-  let imgPath = cardT.opponent && !cardT.floorCard ? `url(./cards/back.svg)` :`url(./cards/${card.suit}${card.rank}.png)`;
+  const card = cardT?.card! as ProtoCard;
 
-  if(cardT.deck) {
-    imgPath = "url(./cards/back.svg)";
+  let imgPath = `url(${new URL("../../assets/cards/back.webp", import.meta.url).href})`;
+  
+  if (card) {
+    imgPath = `url(${
+      new URL(
+        `../../assets/cards/${card.suit}${card.rank}.webp`,
+        import.meta.url
+      ).href
+    })`;
+
+    if (card?.effect === Effect.TRANSPARENT && cardT.table) {
+      imgPath = "";
+      inComingStyle.backgroundColor = "#d9c2c259";
+      inComingStyle.border = "3px solid";
+    }
   }
 
-  if(card.effect === CARD_EFFECT.TRANSPARENT && cardT.table) {
-    imgPath = "";
-    inComingStyle.backgroundColor = "#d9c2c259";
-    inComingStyle.border = "3px solid";
-  }
-
-  if(!cardT.isDraggable) {
+  if (!cardT.isDraggable) {
     return (
-      <animated.div 
-      style={{ backgroundImage: imgPath, ...inComingStyle }}
-      className={styles.card}>
-    </animated.div>
+      <animated.div
+        style={{...inComingStyle }}
+        className={styles.card}
+      >
+        <img 
+          src={imgPath.replace('url(', '').replace(')', '')}
+          alt={`${card?.rank}${card?.suit}`}
+          className={styles.cardImage}
+          loading="lazy"
+        />
+      </animated.div>
     );
   }
+
   return (
-    <animated.div 
+    <animated.div
       {...bindDrag()}
-      style={{ backgroundImage: imgPath, ...inComingStyle, ...positionSpring, touchAction: "none", }}
-      className={styles.card}>
+      style={{
+        ...inComingStyle,
+        ...positionSpring,
+        touchAction: "none",
+      }}
+      className={styles.card}
+    >
+      <img 
+        src={imgPath.replace('url(', '').replace(')', '')}
+        alt={`${card?.rank}${card?.suit}`}
+        className={styles.cardImage}
+        loading="lazy"
+      />
     </animated.div>
   );
 });

@@ -1,12 +1,40 @@
-
 #hand {
-    display: grid;
-    grid-area: hand;
-    margin-bottom: 15px;
-    
-    
-      #handCards {
-        display: flex;
-        justify-content: center;
-      }
-  } 
+  display: grid;
+  grid-area: hand;
+  margin-bottom: 15px;
+  align-content: end;
+
+}
+
+#handCards {
+  display: flex;
+  justify-content: center;
+}
+
+.navButton {
+  position: absolute;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  &.prevButton {
+    left: 10px;
+  }
+
+  &.nextButton {
+    right: 10px;
+  }
+}

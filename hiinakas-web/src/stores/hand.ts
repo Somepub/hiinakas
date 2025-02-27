@@ -1,45 +1,32 @@
-import { CardJson, FloorCardJson, HiddenCardJson } from "@types";
-import { action, makeAutoObservable, makeObservable, observable, set } from "mobx";
+import { makeAutoObservable } from "mobx";
+import { SmallCard, Card } from "@proto/card";
 
 export class Hand {
-  cards: CardJson[];
-  floorCards: FloorCardJson[];
-  hiddenCards: HiddenCardJson[];
+  cards: Card[];
+  floorCards: SmallCard[];
+  hiddenCards: number;
 
   constructor() {
     this.cards = [];
     this.floorCards = [];
-    this.hiddenCards = [];
-
+    this.hiddenCards = 0;
     makeAutoObservable(this);  
   }
 
-  setCards(_cards: CardJson[]) {
+  setCards(_cards: Card[]) {
     if(_cards) {
       this.cards.splice(0, this.cards.length, ..._cards);
     }
-
-    const mockCards: CardJson[] = [
-      {uid: "asd11", rank: 1, suit: 1, effect: 0},
-      {uid: "asd112", rank: 2, suit: 0, effect: 1},
-      {uid: "asd113", rank: 0, suit: 2, effect: 0},
-      {uid: "asd11", rank: 1, suit: 1, effect: 0},
-
-    ];
-   // this.cards.splice(0, mockCards.length, ...mockCards);
   }
 
-  setFloorCards(_cards: FloorCardJson[]) {
-    console.log("FLOOR?", _cards)
+  setFloorCards(_cards: SmallCard[]) {
     if(_cards) {
       this.floorCards.splice(0, this.floorCards.length, ..._cards);
     }
   }
 
-  setHiddenCards(_cards: HiddenCardJson[]) {
-    if(_cards) {
-      this.hiddenCards.splice(0, this.hiddenCards.length, ..._cards);
-    }
+  setHiddenCards(_cards: number) {
+    this.hiddenCards = _cards;
   }
 
   getCards() {

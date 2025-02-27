@@ -1,0 +1,27 @@
+[package]
+name = "hiinakas-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.36", features = ["full"] }
+axum = "0.7"
+socketioxide = { version = "0.14" }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.7", features = ["v4", "serde"] }
+rand = "0.8"
+smallvec = { version = "1.13", features = ["serde"] }
+hashbrown = { version = "0.7", features = ["serde"] }
+prost = "0.11"
+tonic = "0.9"
+short-uuid = "0.1.0"
+openssl = { version = "0.10" }
+reqwest = { version = "0.12", features = ["json"] }
+
+[build-dependencies]
+tonic-build = "0.9"

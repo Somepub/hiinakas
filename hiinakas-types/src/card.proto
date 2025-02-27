@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package card;
+
+message Card {
+  string uid = 1;
+  Rank rank = 2;
+  Suit suit = 3;
+  Effect effect = 4;
+}
+
+message SmallCard {
+  uint32 value = 1;
+}
+
+enum Rank {
+  TWO = 0;
+  THREE = 1;
+  FOUR = 2;
+  FIVE = 3;
+  SIX = 4;
+  SEVEN = 5;
+  EIGHT = 6;
+  NINE = 7;
+  TEN = 8;
+  JACK = 9;
+  QUEEN = 10;
+  KING = 11;
+  ACE = 12;
+}
+
+enum Suit {
+  HEARTS = 0;
+  DIAMONDS = 1;
+  CLUBS = 2;
+  SPADES = 3;
+}
+
+enum Effect {
+  NO_EFFECT = 0;
+  TRANSPARENT = 1;
+  CONSTRAINT = 2;
+  ACE_KILLER = 3;
+  DESTROY = 4;
+}

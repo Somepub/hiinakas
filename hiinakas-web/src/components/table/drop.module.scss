@@ -3,16 +3,27 @@
     z-index: 1;
     
     #cardDrop {
-        width: 80px;
-        border: 1px solid #ffffff2e;
+        width: 75px;
+        border: 1px solid rgba(255, 255, 255, 0.1803921569);
         justify-self: center;
-        height: calc(100% - 20px);
-        margin-top: 8px;
+        margin-top: -8px;
+        margin-bottom: -8px;
+        margin-left: 10px;
       }
 
     #cards {
         display: flex;
         position: relative;
+    }
+}
+
+@media (min-width: 1024px) {
+    #drop {
+        align-items: center;
+    }
+
+    #cardDrop {
+        height: 116px !important;
     }
 }
 

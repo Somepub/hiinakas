@@ -12,3 +12,10 @@
     will-change: transform;
     border-radius: 3px;
 }
+
+.cardImage {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+  }

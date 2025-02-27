@@ -1,11 +1,11 @@
-import { BackCards } from "@components/card/backCards";
 import { useStore } from "@stores/stores";
 import { observer } from "mobx-react-lite";
 import styles from "./deck.module.scss";
-import React from "react";
+import React, { CSSProperties } from "react";
 import { animated, useSprings } from "react-spring";
 import Card from "@components/card/card";
 import useMeasure from "react-use-measure";
+import { v4 } from "uuid";
 
 export const Deck = observer(() => {
     const [ref, bounds] = useMeasure();
@@ -20,19 +20,19 @@ export const Deck = observer(() => {
       zIndex: i,
     });
   
-    const [props, api] = useSprings(cards.length, (i) => ({
+    const [props, api] = useSprings(cards, (i) => ({
       ...to(i),
       from: from(i),
     }));
   
-    const smallStyle = {
+    const smallStyle: CSSProperties = {
       width: "63px",
       height: "98px",
       position: "absolute"
     };
 
     React.useEffect(() => {
-      store.gameInstance.setDeckZoneBounds({
+      store.gameInstance.zones.setDeckZone({
         ...bounds,
       });
     });
@@ -40,8 +40,8 @@ export const Deck = observer(() => {
       return (
         <div ref={ref} id={styles.deck}>
             {props.map(({ x, y, rot, scale }, i) => (
-              <animated.div key={cards[i].uidHash} style={{ x, y, zIndex: 100 + i }}>
-                <Card deck={true} card={cards[i]} floorCard={false} isDraggable={false} opponent={false} style={{
+              <animated.div key={v4()} style={{ x, y, zIndex: 100 + i }}>
+                <Card card={null} isDraggable={false} style={{
                   ...smallStyle
                 }} />
               </animated.div>

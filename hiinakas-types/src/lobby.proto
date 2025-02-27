@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package lobby;
+
+message LobbyPlayer {
+  string player_uid = 1;
+  string name = 2;
+  string public_uid = 3;
+}
+
+message LobbyStatistics {
+  uint32 player_count = 1;
+  uint32 game_count = 2;
+}
+
+enum LobbyQueueAction {
+  START = 0;
+  WAIT = 1;
+}
+
+message LobbyQueueRequest {
+  LobbyPlayer player = 1;
+  bool leave = 2;
+}
+
+message LobbyQueueResponse {
+  string game_uid = 1;
+  LobbyQueueAction action = 2;
+}
+
+message PublicLobbyPlayer {
+  string public_uid = 1;
+  string name = 2;
+}

@@ -3,11 +3,38 @@ import { observer } from "mobx-react-lite";
 import React from "react";
 import { useSprings, animated } from "react-spring";
 import Card from "./card";
-import { FloorCardJson } from "@types";
+import { Effect, SmallCard } from "@proto/card";
+import { v4 } from "uuid";
 
-export const FloorCards = observer((attr: { cards: FloorCardJson[], style: any }) => {
+export const convertSmallCardToCard = (smallCard: SmallCard) => {
+  const suit = Math.floor((smallCard.value - 1) / 13);
+  const rank = (smallCard.value - 1) % 13;
+
+  const getEffect = (rank: number): Effect => {
+    switch(rank) {
+      case 0:
+        return Effect.ACE_KILLER;
+      case 5:
+        return Effect.CONSTRAINT;
+      case 6:
+        return Effect.TRANSPARENT;
+      case 8:
+        return Effect.DESTROY;
+      default:
+        return Effect.NO_EFFECT;
+    }
+  }
+
+  return {
+    uid: v4(),
+    rank: rank,
+    suit: suit,
+    effect: getEffect(rank),
+  }
+}
+
+export const FloorCards = observer((attr: { cards: SmallCard[], style: any }) => {
     const from = (_i: number) => ({ x: 0, rot: 0, scale: 1, y: -1000 });
-    console.log("wtf", attr.cards)
     const to = (i: number) => ({
       x: 0,
       y: 0,
@@ -15,7 +42,7 @@ export const FloorCards = observer((attr: { cards: FloorCardJson[], style: any }
       zIndex: i,
     });
   
-    const [props, api] = useSprings(attr.cards.length, (i) => ({
+    const [props] = useSprings(attr.cards.length, (i) => ({
       ...to(i),
       from: from(i),
     }));
@@ -28,10 +55,10 @@ export const FloorCards = observer((attr: { cards: FloorCardJson[], style: any }
       return (
         <div className={attr.style}>
           {props.map(({ x, y, rot, scale }, i) => (
-            <animated.div key={attr.cards[i].uidHash} style={{ x, y, zIndex: 300 + i }}>
-              <Card card={attr.cards[i]} isDraggable={false} opponent={true} floorCard={true} style={{
+            <animated.div key={attr.cards[i].value} style={{ x, y, zIndex: 300 + i }}>
+              <Card card={convertSmallCardToCard(attr.cards[i])} isDraggable={false} style={{
                 ...smallStyle
-              }} deck={false} />
+              }} />
             </animated.div>
           ))}
         </div>

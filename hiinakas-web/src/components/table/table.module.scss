@@ -1,43 +1,121 @@
-
-#table {
+#tableWrapper {
   display: grid;
   grid-area: table;
-  grid-template-columns: 1fr 1fr 1fr;
-  background-image: url("./area/table.jpg");
-  background-size: contain;
-  background-position: center center;
-  border-left: 8px solid #733c13;
-  border-right: 8px solid #733c13;
-  border-bottom: 8px solid #733c13;
-  border-top: 8px solid #733c13;
-  border-radius: 10px;
+  width: 100%;
+  height: 100%;
+}
+
+#table {
   position: relative;
+  border: 8px solid rgba(120, 53, 15, 0.8);
+  border-radius: 0.75rem;
+  display: grid;
+  height: 100%;
+  align-items: center;
+  background: #0e663c; /* Base color */
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.3);
+  width: calc(100% - 22px);
+  margin-left: 3px;
+}
 
-  #info {
-    display: grid;
-    color: white;
-    z-index: 201;
+.cornerDecorations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: 4rem;
+  height: 4rem;
+  border-width: 2px;
+  border-color: rgba(253, 230, 138, 0.3); // amber-200/30
+
+  &.topLeft {
+    top: 1rem;
+    left: 1rem;
+    border-top-style: solid;
+    border-left-style: solid;
+    border-top-left-radius: 0.5rem;
   }
 
-  #buttons {
-    display: grid;
-    z-index: 202;
-    justify-self: center;
-    align-self: center;
+  &.topRight {
+    top: 1rem;
+    right: 1rem;
+    border-top-style: solid;
+    border-right-style: solid;
+    border-top-right-radius: 0.5rem;
+  }
 
-    div {
-      width: 80px;
-      height: 45px;
-      cursor: pointer;
-      display: grid;
-      border: 2px solid rgba(240, 231, 231, 0.404);
-    }
+  &.bottomLeft {
+    bottom: 1rem;
+    left: 1rem;
+    border-bottom-style: solid;
+    border-left-style: solid;
+    border-bottom-left-radius: 0.5rem;
+  }
 
-    span {
-      justify-self: center;
-      align-self: center;
+  &.bottomRight {
+    bottom: 1rem;
+    right: 1rem;
+    border-bottom-style: solid;
+    border-right-style: solid;
+    border-bottom-right-radius: 0.5rem;
+  }
+}
+
+.gameContent {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-content: center;
+}
+
+#buttons {
+  display: grid;
+  justify-content: end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-right: 20px;
+}
+
+.button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  cursor: pointer;
+  width: 60px;
+  display: flex;
+  justify-content: center;
+
+  &:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  &.endTurn {
+    background-color: #059669; // emerald-600
+    &:hover {
+      background-color: #047857; // emerald-700
     }
   }
+
+  &.pickUp {
+    background-color: #be123c; // rose-700
+    &:hover {
+      background-color: #9f1239; // rose-800
+    }
+  }
+}
+
+#info {
+  display: grid;
+  color: white;
+  z-index: 201;
 }
 
 #seat {
@@ -53,32 +131,22 @@
   }
 }
 
-#endTurn {
-  line-height: 20px;
-  font-weight: 600;
-  border-radius: 8px;
-  border: none;
-  transition: box-shadow 0.2s ease 0s, -ms-transform 0.1s ease 0s, -webkit-transform 0.1s ease 0s, transform 0.1s ease 0s;
-  background: linear-gradient(to right, rgba(30, 230, 40, 0.37) 0%, rgba(28, 227, 38, 0.58) 50%, rgba(9, 226, 107, 0.49) 100%);
-  color: #fff;
-}
-
-#pickUp {
-  line-height: 20px;
-  font-weight: 600;
-  border-radius: 8px;
-  border: none;
-  transition: box-shadow 0.2s ease 0s, -ms-transform 0.1s ease 0s, -webkit-transform 0.1s ease 0s, transform 0.1s ease 0s;
-  background: linear-gradient(to right, rgba(230, 30, 77, 0.37) 0%, rgba(227, 28, 95, 0.58) 50%, rgba(215, 4, 102, 0.49) 100%);
-  color: #fff;
-}
-
 #tableBorder {
-  background-image: url("./area/tableborder.png");
-  background-size: 100%;
   background-repeat: no-repeat;
+  background-size: contain;
   background-position: center center;
   position: absolute;
   width: 100%;
   height: 100%;
+}
+
+@media (min-width: 1024px) {
+  #table {
+    width: 960px;
+    aspect-ratio: 3/1;
+  }
+
+  #tableWrapper {
+    justify-content: center;
+  }
 }

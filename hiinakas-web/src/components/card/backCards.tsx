@@ -1,19 +1,26 @@
 import React from "react";
 import { useSprings, animated, to as interpolate, to } from "react-spring";
 import Card from "./card";
-import { HiddenCardJson } from "@types";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@stores/stores";
 import useMeasure from "react-use-measure";
+import { v4 } from "uuid";
 
 const trans = (x: number, y: number, r: number, s: number) =>
   `translate3d(${x}px, ${y}px, 0) rotateZ(${r}deg) scale(${s})`;
 
-export const BackCards = observer((attr: { cards: HiddenCardJson[]; style: any }) => {
+interface BackCardsProps {
+  numOfCards: number;
+  attr: {
+    style: any;
+  };
+}
+
+export const BackCards: React.FC<BackCardsProps> = observer(({ numOfCards, attr }) => {
   const [ref, bounds] = useMeasure();
   const store = useStore();
   
-  const deckBounds = store.gameInstance?.deckZoneBounds!;
+  const deckBounds = store.gameInstance.zones.deckZone!;
   const startY =  deckBounds?.bottom - bounds.bottom;
   const deckCenterX = (deckBounds?.left + deckBounds?.right) / 2;
   const handCenterX = (bounds.left + bounds.right) / 2;
@@ -33,7 +40,7 @@ export const BackCards = observer((attr: { cards: HiddenCardJson[]; style: any }
     zIndex: i,
   });
 
-  const [props, api] = useSprings(attr.cards.length, (i) => ({
+  const [props] = useSprings(numOfCards, (i) => ({
     ...to(i),
     from: from(i),
   }));
@@ -47,18 +54,15 @@ export const BackCards = observer((attr: { cards: HiddenCardJson[]; style: any }
     <div ref={ref} className={attr.style}>
       {props.map(({ x, y, rot, scale }, i) => (
         <animated.div
-          key={attr.cards[i].uidHash}
+          key={v4()}
           style={{
             zIndex: 300 + i,
             transform: interpolate([x, y, rot, scale], trans),
           }}
         >
           <Card
-            deck={false}
-            card={attr.cards[i]}
-            floorCard={false}
+            card={null}
             isDraggable={false}
-            opponent={true}
             style={{
               ...smallStyle,
             }}

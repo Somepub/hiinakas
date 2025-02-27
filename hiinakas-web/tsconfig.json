@@ -15,23 +15,20 @@
       "resolveJsonModule":true,
       "lib": ["es2019","dom", "dom.iterable"],
       "paths": {
-        "@stores": [
-          "stores/index"
-        ],
         "@components/*": ["components/*"],
         "@views/*": ["views/*"],
         "@stores/*" : ["stores/*"],
         "@assets/*": ["assets/*"],
-        "@types": ["../../hiinakas-common/src/index"]
-    },
+        "@proto/*": ["proto/*"]
+      }
     },
     "exclude": [
       "node_modules"
     ],
     "include": [
-      "./src", 
-      "../../hiinakas-common/src",
-      "./declaration.d.ts",
+      "src", 
+      "declaration.d.ts",
+      "global.d.ts",
     ]
     
   }

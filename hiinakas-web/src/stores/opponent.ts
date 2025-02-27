@@ -1,37 +1,33 @@
-import { FloorCardJson, HiddenCardJson } from "@types";
 import { makeAutoObservable } from "mobx";
+import { SmallCard } from "@proto/card";
 
 export class Opponent {
-  cards: HiddenCardJson[];
-  floorCards: FloorCardJson[];
-  hiddenCards: HiddenCardJson[];
+  cards: number;
+  floorCards: SmallCard[];
+  hiddenCards: number;
   name: string;
 
   constructor() {
-    this.cards = [];
+    this.cards = 0;
     this.floorCards = [];
-    this.hiddenCards = [];
+    this.hiddenCards = 0;
     this.name = "";
 
     makeAutoObservable(this);
   }
 
-  setCards(_cards: HiddenCardJson[]) {
-    if(_cards) {
-      this.cards.splice(0, this.cards.length, ..._cards);
-    }
+  setCards(_cards: number) {
+    this.cards = _cards;
   }
 
-  setFloorCards(_cards: FloorCardJson[]) {
+  setFloorCards(_cards: SmallCard[]) {
     if(_cards) {
       this.floorCards.splice(0, this.floorCards.length, ..._cards);
     }
   }
 
-  setHiddenCards(_cards: HiddenCardJson[]) {
-    if(_cards) {
-      this.hiddenCards.splice(0, this.hiddenCards.length, ..._cards);
-    }
+  setHiddenCards(_cards: number) {
+    this.hiddenCards = _cards;
   }
 
   setName(name: string) {
@@ -52,9 +48,5 @@ export class Opponent {
 
   getName() {
     return this.name;
-  }
-
-  get numCards() {
-    return this.cards.length;
   }
 }

@@ -1,9 +1,7 @@
-import { CardT } from "@components/card/card";
-import { action, makeAutoObservable, makeObservable, observable } from "mobx";
-import { CardJson, HiddenCardJson } from "@types";
+import { makeAutoObservable } from "mobx";
 
 export class Deck {
-  pool: HiddenCardJson[] = [];
+  pool: number = 0;
   constructor() {
     makeAutoObservable(this);
   }
@@ -12,9 +10,7 @@ export class Deck {
     return this.pool;
   }
 
-  setCards(_cards: HiddenCardJson[]) {
-    if(_cards) {
-      this.pool.splice(0, this.pool.length, ..._cards);
-    }
+  setCards(_cards: number) {
+    this.pool = _cards;
   }
 }

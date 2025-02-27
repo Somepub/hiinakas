@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package game;
+
+import "card.proto";
+import "lobby.proto";
+
+enum GameInstanceMessageAction {
+  INFO = 0;
+  ERROR = 1;
+}
+
+message GameTurnRequest {
+  string uid = 1;
+  lobby.LobbyPlayer player = 2;
+  GameInstanceAction action = 3;
+  string card_id = 4;
+}
+
+message GameTurnResponse {
+  string uid = 1;
+  GameTurn game_turn = 2;
+}
+
+message GameTurn {
+  GameTurnStatus status = 1;
+  GameTurnPlayer player = 2;
+  repeated card.SmallCard table = 3;
+  uint32 deck = 4;
+  bool is_winner = 5;
+}
+
+message GameTurnPlayer {
+  string name = 1;
+  bool is_my_turn = 2;
+  GameInstanceAction action = 3;
+  GameInstanceMessage message = 4;
+}
+
+message GameInstanceMessage {
+  GameInstanceMessageAction type = 1;
+  string message = 2;
+}
+
+message GameTurnStatus {
+  PlayerStatus player_status = 1;
+  repeated OpponentPlayerStatus other_players = 2;
+}
+
+message PlayerStatus {
+  repeated card.Card hand_cards = 1;
+  repeated card.SmallCard floor_cards = 2;
+  uint32 hidden_cards = 3;
+}
+
+message OpponentPlayerStatus {
+  string name = 1;
+  uint32 hand_cards = 2;
+  repeated card.SmallCard floor_cards = 3;
+  uint32 hidden_cards = 4;
+}
+
+enum GameInstanceAction {
+  INIT = 0;
+  PLAY_CARD = 1;
+  END_TURN = 2;
+  PICK_UP = 3;
+  WIN = 4;
+}
+
+message GameTurnFeedback {
+  GameInstanceAction action = 1;
+  GameInstanceMessage message = 2;
+  bool has_won = 3;
+  bool has_disconnect = 4;
+}

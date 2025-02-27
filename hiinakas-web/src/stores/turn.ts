@@ -1,23 +1,33 @@
-import { makeAutoObservable, reaction } from "mobx";
-import { Md5 } from "ts-md5";
-import { GameInstanceAction, GameInstanceMessage, GameInstanceMessageAction } from "@types";
-import dropCard from "../assets/sounds/cardput.wav";
-import drawCard from "../assets/sounds/carddraw.wav";
-import suffleCards from "../assets/sounds/cardshuffle.wav";
-import pickUpCards from "../assets/sounds/pickup.wav";
+import { action, makeAutoObservable, reaction } from "mobx";
+import { GameInstanceAction, GameInstanceMessage, GameInstanceMessageAction, GameTurnPlayer } from "@proto/game";
+import dropCard from "../assets/sounds/cardput.mp3";
+import drawCard from "../assets/sounds/carddraw.mp3";
+import suffleCards from "../assets/sounds/cardshuffle.mp3";
+import pickUpCards from "../assets/sounds/pickup.mp3";
 import { GameInstance } from "./gameInstance";
+import { toast } from "react-toastify";
 
 export class Turn {
-  currentTurnHash: string = "";
   currentTurnName: string = "";
   action: GameInstanceAction = null;
   gameInstance: GameInstance;
   turnMessage : GameInstanceMessage;
-  winner: string = null;
+  isWinner: boolean = false;
+  winnerTimeout: NodeJS.Timeout | null = null;
+  isMyTurn: boolean = false;
 
   constructor(gameInstance: GameInstance) {
     this.gameInstance = gameInstance;
     makeAutoObservable(this);
+
+    reaction(() => this.isMyTurn, (turn) => {
+      toast.dismiss();
+      const turnMessage = turn ? "Your Turn" : "Opponent's Turn";
+      toast(turnMessage, {
+        type: "info",
+        theme: "dark",
+      });
+    });
   }
 
   setGameInstanceAction(state: GameInstanceAction) {
@@ -25,8 +35,8 @@ export class Turn {
     this.playSound();
   }
 
-  setCurrentTurnHash(newHash: string) {
-    this.currentTurnHash = newHash;
+  setIsMyTurn(isMyTurn: boolean) {
+    this.isMyTurn = isMyTurn;
   }
 
   setCurrentTurnName(newName: string) {
@@ -35,25 +45,18 @@ export class Turn {
 
   setTurnMessage(message: GameInstanceMessage) {
     this.turnMessage = message;
-  }
-
-  setWinner(winner: string | null, gameInstance: GameInstance) {
-    if(winner) {
-      this.winner = winner;
-      setTimeout( () => {
-        gameInstance.menu.reset();
-        gameInstance.gameReady = false;
-        this.winner = null;
-      }, 1000);
+    if(message.type === GameInstanceMessageAction.ERROR) {
+      toast(message.message, {
+        type: "error",
+        theme: "dark",
+      });
     }
   }
 
-  isMyTurn() {
-    if(this.gameInstance.userUid) {
-      const currHash = Md5.hashStr(this.gameInstance.userUid);
-      return currHash === this.currentTurnHash;
+  setWinner(winner: boolean, gameInstance: GameInstance) {
+    if(this.action === GameInstanceAction.WIN) {
+      this.isWinner = winner;
     }
-    return false;
   }
 
   playSound() {
