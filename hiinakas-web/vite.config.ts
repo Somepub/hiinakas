@@ -37,10 +37,10 @@ export default defineConfig(({ command, mode }) => {
       cssCodeSplit: false,
       rollupOptions: {
         output: {
-          entryFileNames: 'hiinakas[name][hash].js',
+          entryFileNames: 'hiinakas.js',
         }
       },
-      assetsInlineLimit: 100,
+      assetsInlineLimit: 100000000000,
     },
     resolve: {
       alias: {

@@ -45,8 +45,8 @@
     "webcomponents": "^0.1.4"
   },
   "scripts": {
-    "dev": "cross-env WEBCOMPONENT=false vite",
-    "build": "cross-env WEBCOMPONENT=true vite build",
+    "dev": "vite",
+    "build": "vite build",
     "generate-proto": "protoc -I../hiinakas-types/src/ game.proto lobby.proto card.proto --plugin=./node_modules/.bin/protoc-gen-ts_proto.cmd --ts_proto_out=./src/proto"
   }
 }

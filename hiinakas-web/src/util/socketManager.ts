@@ -12,7 +12,7 @@ const SOCKET_EVENTS = {
 
 const WEBSOCKET_CONFIG = {
   DEV_URL: "ws://localhost:5000",
-  PROD_URL: "wss://gameyard.pro",
+  PROD_URL: "wss://hiinakas.com",
   PATH: '/v2/curak/',
   POLLING_INTERVAL: 2500,
   CONNECT_DELAY: 100  
