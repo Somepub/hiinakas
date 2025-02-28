@@ -24,7 +24,6 @@
   display: grid;
   height: 100%;
   width: 100%;
-  grid-template-rows: 100px 1fr;
   color: white;
   background-repeat: no-repeat;
   background-size: cover;
@@ -130,14 +129,10 @@
 
 
 .infoBox {
-  position: absolute;
-  top: 85px;
-  right: 95px;
   background: rgba(0, 0, 0, 0.5);
   color: white;
   padding: 1rem;
   border-radius: 10px;
-  font-size: 0.9rem;
   z-index: 10;
   display: flex;
   flex-direction: column;
