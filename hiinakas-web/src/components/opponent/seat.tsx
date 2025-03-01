@@ -12,7 +12,7 @@ const PlayerCards = observer(() => {
   const opponentPlayerCardsLen = store.gameInstance?.opponent?.cards;
   return (
     <div>
-      <BackCards attr={{ style: styles.handCards }} numOfCards={3} />
+      <BackCards attr={{ style: styles.handCards }} numOfCards={opponentPlayerCardsLen > 3 ? 3 : opponentPlayerCardsLen} />
       <div
         style={{ color: "white" }}
         className={`${styles.handCards} ${styles.textShadow}`}
