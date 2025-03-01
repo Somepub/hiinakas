@@ -6,6 +6,7 @@ export class Menu {
   gameInstance: GameInstance;
   isWaiting: boolean = false;
   statistics: LobbyStatistics = null!;
+  maxPlayers: number = 2;
 
   constructor(gameInstance: GameInstance) {
     this.gameInstance = gameInstance;
@@ -32,6 +33,7 @@ export class Menu {
         name: this.gameInstance.player.name,
       },
       leave: false,
+      maxPlayers: this.maxPlayers,
     });
     console.log("Lobby queue", msg);
     const socketIO = this.gameInstance.socketManager.socket;
@@ -69,5 +71,15 @@ export class Menu {
   exitGame() {
     document.querySelector('game-curak')?.remove();
     (window as any).curak = false;
+  }
+
+  setMaxPlayers(value: number) {
+    if (value < 2) {
+      value = 2;
+    }
+    if (value > 4) {
+      value = 4;
+    }
+    this.maxPlayers = value;
   }
 }

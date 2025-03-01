@@ -23,6 +23,8 @@ pub struct LobbyQueueRequest {
     pub player: ::core::option::Option<LobbyPlayer>,
     #[prost(bool, tag = "2")]
     pub leave: bool,
+    #[prost(uint32, tag = "3")]
+    pub max_players: u32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

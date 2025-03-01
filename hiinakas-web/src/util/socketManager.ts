@@ -2,6 +2,7 @@ import { Socket, io } from "socket.io-client";
 import { GameInstanceAction, GameInstanceMessageAction, GameTurn, GameTurnRequest, GameTurnResponse, OpponentPlayerStatus, PlayerStatus } from "@proto/game";
 import { GameInstance } from "../stores/gameInstance";
 import { LobbyQueueResponse } from "@proto/lobby";
+import { Opponent } from "@stores/opponent";
 
 const SOCKET_EVENTS = {
   CONNECT: 'connect',
@@ -118,11 +119,20 @@ export class SocketManager {
   private updateGameState(gameTurn: GameTurn) {
     console.debug("updateGameState", gameTurn);
     const playerStatus = gameTurn.status?.playerStatus;
-    const opponentInfo = gameTurn.status?.otherPlayers[0];
 
     this.updateTableAndDeck(gameTurn);
     this.updateTurnInfo(gameTurn);
-    this.updatePlayerStates(playerStatus, opponentInfo);
+
+    if(this.gameInstance.opponents.length === 0) {
+      gameTurn.status?.otherPlayers.forEach(opponentInfo => {
+        const opponent = new Opponent();
+        opponent.setName(opponentInfo.name);
+        this.gameInstance.setOpponent(opponent);
+      });
+    }
+    gameTurn.status?.otherPlayers.forEach(opponentInfo => {
+      this.updatePlayerStates(playerStatus, opponentInfo);
+    });
   }
 
   private updateTableAndDeck(gameTurn: GameTurn) {
@@ -148,10 +158,9 @@ export class SocketManager {
 
   private updatePlayerStates(playerStatus: PlayerStatus, opponentInfo: OpponentPlayerStatus) {
     if (opponentInfo) {
-      this.gameInstance.opponent.setCards(opponentInfo.handCards);
-      this.gameInstance.opponent.setFloorCards(opponentInfo.floorCards);
-      this.gameInstance.opponent.setHiddenCards(opponentInfo.hiddenCards);
-      this.gameInstance.opponent.setName(opponentInfo.name);
+      this.gameInstance.opponents.find(opponent => opponent.name === opponentInfo.name).setCards(opponentInfo.handCards);
+      this.gameInstance.opponents.find(opponent => opponent.name === opponentInfo.name).setFloorCards(opponentInfo.floorCards);
+      this.gameInstance.opponents.find(opponent => opponent.name === opponentInfo.name).setHiddenCards(opponentInfo.hiddenCards);
     }
 
     if (playerStatus) {

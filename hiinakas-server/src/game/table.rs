@@ -118,10 +118,15 @@ impl Table {
                             let beneath = beneath_card.unwrap();
                             match beneath.get_effect() {
                                 Effect::Constraint => {
-                                    card.get_rank() as u8 <= beneath.get_rank() as u8
+                                    true
                                 }
                                 Effect::NoEffect => {
-                                    card.get_rank() as u8 >= beneath.get_rank() as u8
+                                    match current_effect {
+                                        Effect::AceKiller => {
+                                            return last_card.get_rank() == Rank::Ace;
+                                        }
+                                        _ => true,
+                                    }
                                 }
                                 _ => true,
                             }

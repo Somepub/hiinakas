@@ -5,7 +5,8 @@ import { useStore } from "@stores/stores";
 import backgroundImage from "@assets/area/background.webp";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
-import Avvvatars from "avvvatars-react";
+import { faCaretDown } from "@fortawesome/free-solid-svg-icons/faCaretDown";
+import { faCaretUp } from "@fortawesome/free-solid-svg-icons/faCaretUp";
 import { NameInput } from "./nameinput";
 
 const MenuLogo = () => {
@@ -22,11 +23,22 @@ const MenuLogo = () => {
   );
 };
 
-const MenuContent = observer(() => {
+const MenuMaxPlayers = observer(() => { 
+  const { menu } = useStore();
+  return (
+    <div id={styles.menuMaxPlayers}>
+      <span>MAX PLAYERS: {menu.maxPlayers}</span>
+      <FontAwesomeIcon icon={faCaretDown} onClick={() => menu.setMaxPlayers(menu.maxPlayers - 1)} />
+      <FontAwesomeIcon icon={faCaretUp} onClick={() => menu.setMaxPlayers(menu.maxPlayers + 1)} />
+    </div>
+  );
+});
 
+const MenuContent = observer(() => {
   return (
     <div id={styles.menuContent}>
       <MenuContentStatistics />
+      <MenuMaxPlayers />
       <MenuContentFindMatch />
       <MenuContentExit />
     </div>

@@ -23,23 +23,25 @@
     position: relative;
 }
 
-#seat {
-    display: grid;
+.seat {
+    display: flex;
     position: relative;
-    grid-template-rows: 66px 1fr;
 }
 
-#playerName {
-    position: absolute;
-    top: -21px;
+.player {
     color: white;
-    left: 26px;
     z-index: 333;
-    
+    width: 153px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    position: absolute;
 }
 
-.textShadow {
-    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+.playerName {
+    background-color: rgba(24, 22, 22, 0.692);
+    width: fit-content;
 }
 
 #iconCards {

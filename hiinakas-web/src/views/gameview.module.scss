@@ -24,6 +24,14 @@
     background-color: #1c1f24ed;
 }
 
+#opponents {
+    display: flex;
+    flex-direction: column;
+    margin-top: 60px;
+    row-gap: 15px;
+    margin-left: 15px;
+}
+
 @media (min-width: 1024px) {
     #gameview {
         grid-template-rows: minmax(150px, 307px) minmax(73px, 307px) 65px minmax(150px, 1fr);

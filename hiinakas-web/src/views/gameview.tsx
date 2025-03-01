@@ -12,8 +12,11 @@ import PlayerTurn from "@components/player/playerTurn";
 import { useStore } from "@stores/stores";
 import { Rank, SmallCard, Suit } from "@proto/card";
 import { Card } from "@proto/card";
+import { Opponent } from "@stores/opponent";
 
 const GameView = observer(() => {
+  const store = useStore();
+
   return (
     <>
       <ToastContainer pauseOnFocusLoss={false} autoClose={1000} limit={1} />
@@ -22,7 +25,11 @@ const GameView = observer(() => {
       <PlayerTurn />
       <div style={{backgroundImage: `url(${backgroundImage})`}} id={styles.mainwrapper}>
         <div id={styles.gameview}>
-          <OpponentSeat />
+          <div id={styles.opponents}>
+            {store.gameInstance.opponents.map(opponent => (
+              <OpponentSeat opponent={opponent} />
+            ))}
+          </div>
           <Table />
           <PlayerSeat />
         </div>
@@ -69,17 +76,32 @@ export const GameDevView = observer(() => {
   gameInstance.hand.setHiddenCards(3);
   /*gameInstance.table.setCards([
     SmallCard.create({value: 1}),
-    SmallCard.create({value: 1}),
+    SmallCard.create({value: 1}), 
     SmallCard.create({value: 1}),
   ]);*/
 
-  gameInstance.opponent.setCards(3);
-  gameInstance.opponent.setFloorCards([
+  gameInstance.opponents = [
+   new Opponent(),
+   new Opponent(),
+  ]
+  gameInstance.opponents[0].name = "Player 1";
+  gameInstance.opponents[1].name = "Player 2";
+
+  gameInstance.opponents[0].setCards(3);
+  gameInstance.opponents[0].setFloorCards([
     SmallCard.create({value: 1}),
     SmallCard.create({value: 1}),
     SmallCard.create({value: 1}),
   ]);
-  gameInstance.opponent.setHiddenCards(3);
+  gameInstance.opponents[0].setHiddenCards(3);
+
+  gameInstance.opponents[1].setCards(3);
+  gameInstance.opponents[1].setFloorCards([
+    SmallCard.create({value: 1}),
+    SmallCard.create({value: 1}),
+    SmallCard.create({value: 1}),
+  ]);
+  gameInstance.opponents[1].setHiddenCards(3);
 
   gameInstance.deck.setCards(10);
   gameInstance.gameReady = true;

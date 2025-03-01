@@ -206,14 +206,15 @@ impl GameInstance {
             
             // TODO:: Not working properly, fix it.
             let table_cards = table.get_cards();
-            if table_cards.len() >= 4 {
+            if table_cards.len() >= 3 {
                 let last_three = &table_cards[table_cards.len().saturating_sub(3)..];
                 if
-                    last_three.len() == 4 &&
+                    last_three.len() == 3 &&
                     last_three.iter().all(|c| c.get_rank() == card.get_rank())
                 {
                     table.clear();
                     self.set_turn_moves(0).await;
+                    return true;
                 }
             }
 

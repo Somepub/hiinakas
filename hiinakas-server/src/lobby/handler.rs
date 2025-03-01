@@ -168,7 +168,7 @@ impl LobbyHandler {
         }
 
         //debug!("Queue length: {:?}", self.lobby.get_queue().await.len());
-        if self.lobby.get_queue().await.len() < 2 {
+        if self.lobby.get_queue().await.len() < message.max_players as usize {
             //debug!("Queue is less than 2");
             let mut response = LobbyQueueResponse::default();
             response.set_action(LobbyQueueAction::Wait.into());

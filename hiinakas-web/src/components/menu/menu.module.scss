@@ -127,6 +127,16 @@
   margin-bottom: 15px;
 }
 
+#menuMaxPlayers {
+  display: flex;
+  font-size: 20px;
+  gap: 10px;
+
+  svg {
+    font-size: 45px;
+  }
+  
+}
 
 .infoBox {
   background: rgba(0, 0, 0, 0.5);

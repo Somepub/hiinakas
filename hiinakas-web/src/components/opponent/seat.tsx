@@ -5,13 +5,12 @@ import { observer } from "mobx-react-lite";
 import useMeasure from "react-use-measure";
 import { BackCards } from "@components/card/backCards";
 import { FloorCards } from "@components/card/floorCards";
-import Avvvatars from "avvvatars-react";
+import { Opponent } from "@stores/opponent";
 
-const PlayerCards = observer(() => {
-  const store = useStore();
-  const opponentPlayerCardsLen = store.gameInstance?.opponent?.cards;
+const PlayerCards = observer(({ opponent }: { opponent: Opponent }) => {
+  const opponentPlayerCardsLen = opponent.cards;
   return (
-    <div>
+    <>
       <BackCards attr={{ style: styles.handCards }} numOfCards={opponentPlayerCardsLen > 3 ? 3 : opponentPlayerCardsLen} />
       <div
         style={{ color: "white" }}
@@ -19,14 +18,14 @@ const PlayerCards = observer(() => {
       >
        { opponentPlayerCardsLen > 3 && `+ ${opponentPlayerCardsLen - 3}`}
       </div>
-    </div>
+    </>
   );
 });
 
-const PlayerIcon = observer(() => {
+const PlayerIcon = observer(({ opponent }: { opponent: Opponent }) => {
   const [ref, bounds] = useMeasure();
   const store = useStore();
-  const opponentName = store.gameInstance?.opponent?.name;
+  const opponentName = opponent.name;
 
   React.useEffect(() => {
     store.gameInstance.zones.setOpponentZone({
@@ -36,9 +35,8 @@ const PlayerIcon = observer(() => {
 
   if (opponentName) {
     return (
-      <div ref={ref} id={styles.icon}>
-        <Avvvatars style="shape" value={opponentName} size={110} />
-        <div className={styles.textShadow} id={styles.playerName}>
+      <div className={styles.player}>
+        <div className={styles.playerName} >
           {opponentName}
         </div>
       </div>
@@ -46,35 +44,27 @@ const PlayerIcon = observer(() => {
   }
 });
 
-const PlayerDetails = observer(() => {
-  const store = useStore();
+const PlayerOtherCards = observer(({ opponent }: { opponent: Opponent }) => {
   return (
-    <div>
+    <>
       <BackCards
-        numOfCards={store.gameInstance.opponent.hiddenCards}
+        numOfCards={opponent.hiddenCards}
         attr={{ style: styles.hiddenCards }}
       />
       <FloorCards
-        cards={store.gameInstance.opponent.floorCards}
+        cards={opponent.floorCards}
         style={styles.floorCards}
       />
-    </div>
+    </>
   );
 });
 
-const PlayerIconCards = observer(() => {
-  return <div id={styles.iconCards}>
-    <PlayerIcon />
-    <PlayerCards />
-  </div>
-});
-
-export const Seat = observer(() => {
-  const store = useStore();
+export const Seat = observer(({ opponent }: { opponent: Opponent }) => {
     return (
-      <div id={styles.seat}>
-        <PlayerDetails />
-        <PlayerIconCards />
+      <div className={styles.seat}>
+        <PlayerIcon opponent={opponent} />
+        <PlayerCards opponent={opponent} />
+        <PlayerOtherCards opponent={opponent} />
       </div>
     );
 });

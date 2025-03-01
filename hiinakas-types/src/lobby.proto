@@ -21,6 +21,7 @@ enum LobbyQueueAction {
 message LobbyQueueRequest {
   LobbyPlayer player = 1;
   bool leave = 2;
+  uint32 max_players = 3;
 }
 
 message LobbyQueueResponse {

@@ -18,7 +18,7 @@ export class GameInstance {
   player: PlayerState;
   notifications: NotificationManager;
   socketManager: SocketManager;
-  opponent: Opponent;
+  opponents: Opponent[];
   hand: Hand;
   table: Table;
   deck: Deck;
@@ -39,7 +39,7 @@ export class GameInstance {
     this.hand = new Hand();
     this.table = new Table();
     this.deck = new Deck();
-    this.opponent = new Opponent();
+    this.opponents = [];
     this.turn = new Turn(this);
     
     makeAutoObservable(this);
@@ -73,5 +73,9 @@ export class GameInstance {
 
   setMenu(menu: Menu) {
     this.menu = menu;
+  }
+
+  setOpponent(opponent: Opponent) {
+    this.opponents = [...this.opponents, opponent];
   }
 }
