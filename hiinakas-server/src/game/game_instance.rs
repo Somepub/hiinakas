@@ -343,7 +343,12 @@ impl GameInstance {
             player.get_hand_cards().is_empty() && deck.get_cards().is_empty()
         };
         
-        // If only holding 3 EFFECR::DESTROY cards and placing them on the table, draw cards after the placement
+
+
+        drop(players);
+
+         // If only holding 3 EFFECR::DESTROY cards and placing them on the table, draw cards after the placement
+        
         {
             let mut players = self.players.write().await;
             let player = players.get_mut(turn_index).unwrap();
@@ -352,8 +357,7 @@ impl GameInstance {
                 return Ok(());
             }
         }
-
-        drop(players);
+        
 
         if needs_cards {
             let mut players = self.players.write().await;
