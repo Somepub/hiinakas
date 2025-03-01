@@ -8,7 +8,7 @@ import backgroundImage from '@assets/area/background.webp';
 import { Timer } from "@components/timer/timer";
 import { ToastContainer } from "react-toastify";
 import { observer } from "mobx-react-lite";
-import PlayerName from "@components/player/playerName";
+import PlayerTurn from "@components/player/playerTurn";
 import { useStore } from "@stores/stores";
 import { Rank, SmallCard, Suit } from "@proto/card";
 import { Card } from "@proto/card";
@@ -19,7 +19,7 @@ const GameView = observer(() => {
       <ToastContainer pauseOnFocusLoss={false} autoClose={1000} limit={1} />
       <GameResult />
       <Timer />
-      <PlayerName />
+      <PlayerTurn />
       <div style={{backgroundImage: `url(${backgroundImage})`}} id={styles.mainwrapper}>
         <div id={styles.gameview}>
           <OpponentSeat />

@@ -111,18 +111,19 @@ impl Table {
                     Effect::Transparent => {
                         let beneath_card = self.find_card_beneath_transparent();
                         
-                        if beneath_card.is_none() && current_effect == Effect::AceKiller {
+                        if beneath_card.is_none() {
                             return true;
                         }
-
-                        if let Some(beneath) = beneath_card {
-                            if current_effect == Effect::AceKiller {
-                                return beneath.get_rank() == Rank::Ace;
+                        else {
+                            let beneath = beneath_card.unwrap();
+                            match beneath.get_effect() {
+                                Effect::Constraint => {
+                                    card.get_rank() as u8 <= beneath.get_rank() as u8
+                                }
+                                _ => true,
                             }
                         }
 
-                        // If current card is transparent or constraint
-                        matches!(current_effect, Effect::Transparent | Effect::Constraint)
                     }
                     Effect::AceKiller | Effect::Constraint => true,
                     _ => false,

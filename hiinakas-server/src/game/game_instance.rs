@@ -144,7 +144,7 @@ impl GameInstance {
     }
 
     async fn start_timer(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let timer = Timer::with_duration(Duration::from_millis(30050));
+        let timer = Timer::with_duration(Duration::from_millis(60070));
         let mut timer_guard = self.timer.write().await;
         *timer_guard = Some(timer);
         Ok(())
@@ -204,10 +204,9 @@ impl GameInstance {
                 }
             }
             
-
             // TODO:: Not working properly, fix it.
-            /*let table_cards = table.get_cards();
-            if table_cards.len() >= 2 {
+            let table_cards = table.get_cards();
+            if table_cards.len() >= 3 {
                 let last_three = &table_cards[table_cards.len().saturating_sub(3)..];
                 if
                     last_three.len() == 3 &&
@@ -216,7 +215,7 @@ impl GameInstance {
                     table.clear();
                     self.set_turn_moves(0).await;
                 }
-            }*/
+            }
 
             if card.get_effect() == Effect::Destroy {
                 table.clear();
@@ -343,6 +342,16 @@ impl GameInstance {
             let deck = self.deck.read().await;
             player.get_hand_cards().is_empty() && deck.get_cards().is_empty()
         };
+        
+        // If only holding 3 EFFECR::DESTROY cards and placing them on the table, draw cards after the placement
+        {
+            let mut players = self.players.write().await;
+            let player = players.get_mut(turn_index).unwrap();
+            if player.get_hand_cards().is_empty() && self.table.read().await.get_cards().is_empty() {
+                self.draw_card(player).await;
+                return Ok(());
+            }
+        }
 
         drop(players);
 
