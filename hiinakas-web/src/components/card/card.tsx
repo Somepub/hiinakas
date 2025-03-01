@@ -77,7 +77,7 @@ const Card = observer((cardT: CardProps) => {
   if (card) {
     imgPath = `url(${
       new URL(
-        `../../assets/cards/${card.suit}${card.rank}.webp`,
+        `../../assets/cards/${card.suit}${card.rank}.svg`,
         import.meta.url
       ).href
     })`;

@@ -120,6 +120,9 @@ impl Table {
                                 Effect::Constraint => {
                                     card.get_rank() as u8 <= beneath.get_rank() as u8
                                 }
+                                Effect::NoEffect => {
+                                    card.get_rank() as u8 >= beneath.get_rank() as u8
+                                }
                                 _ => true,
                             }
                         }

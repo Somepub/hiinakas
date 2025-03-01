@@ -19,7 +19,7 @@ use crate::protos::{
 
 use super::{ deck::Deck, player::Player, table::Table };
 
-const MAX_PLAYERS: usize = 2;
+const MAX_PLAYERS: usize = 4;
 
 #[derive(Debug, Clone)]
 pub struct GameInstance {
@@ -206,10 +206,10 @@ impl GameInstance {
             
             // TODO:: Not working properly, fix it.
             let table_cards = table.get_cards();
-            if table_cards.len() >= 3 {
+            if table_cards.len() >= 4 {
                 let last_three = &table_cards[table_cards.len().saturating_sub(3)..];
                 if
-                    last_three.len() == 3 &&
+                    last_three.len() == 4 &&
                     last_three.iter().all(|c| c.get_rank() == card.get_rank())
                 {
                     table.clear();
