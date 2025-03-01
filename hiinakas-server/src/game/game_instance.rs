@@ -342,13 +342,12 @@ impl GameInstance {
             let deck = self.deck.read().await;
             player.get_hand_cards().is_empty() && deck.get_cards().is_empty()
         };
-        
-
 
         drop(players);
 
+        // TODO:: Not working properly, fix it.
          // If only holding 3 EFFECR::DESTROY cards and placing them on the table, draw cards after the placement
-        
+        /* 
         {
             let mut players = self.players.write().await;
             let player = players.get_mut(turn_index).unwrap();
@@ -357,7 +356,7 @@ impl GameInstance {
                 return Ok(());
             }
         }
-        
+        */
 
         if needs_cards {
             let mut players = self.players.write().await;
