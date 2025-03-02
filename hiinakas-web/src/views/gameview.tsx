@@ -74,11 +74,11 @@ export const GameDevView = observer(() => {
     SmallCard.create({value: 1}),
   ]);
   gameInstance.hand.setHiddenCards(3);
-  /*gameInstance.table.setCards([
-    SmallCard.create({value: 1}),
-    SmallCard.create({value: 1}), 
-    SmallCard.create({value: 1}),
-  ]);*/
+  gameInstance.table.setCards([
+    SmallCard.create({value: 7}),
+    SmallCard.create({value: 6}), 
+    SmallCard.create({value: 7}),
+  ]);
 
   gameInstance.opponents = [
    new Opponent(),

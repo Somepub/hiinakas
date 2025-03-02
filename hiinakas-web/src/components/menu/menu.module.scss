@@ -110,11 +110,10 @@
 }
 
 #menuContentWaitingLabel {
-  font-size: 26px;
+  font-size: 24px;
   display: flex;
   flex-direction: column;
   gap: 15px;
-  -webkit-text-stroke: 1px rgb(34, 32, 32);
 
   svg {
     font-size: 32px;
@@ -125,6 +124,10 @@
   @include menu-button;
   align-self: end;
   margin-bottom: 15px;
+}
+
+#menuContentExitFullscreen {
+  @include menu-button;
 }
 
 #menuMaxPlayers {

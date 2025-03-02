@@ -97,7 +97,6 @@ const Card = observer((cardT: CardProps) => {
       >
         <img 
           src={imgPath.replace('url(', '').replace(')', '')}
-          alt={`${card?.rank}${card?.suit}`}
           className={styles.cardImage}
           loading="lazy"
         />
@@ -117,7 +116,6 @@ const Card = observer((cardT: CardProps) => {
     >
       <img 
         src={imgPath.replace('url(', '').replace(')', '')}
-        alt={`${card?.rank}${card?.suit}`}
         className={styles.cardImage}
         loading="lazy"
       />

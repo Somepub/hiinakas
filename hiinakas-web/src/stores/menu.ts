@@ -7,6 +7,7 @@ export class Menu {
   isWaiting: boolean = false;
   statistics: LobbyStatistics = null!;
   maxPlayers: number = 2;
+  isFullscreen: boolean = false;
 
   constructor(gameInstance: GameInstance) {
     this.gameInstance = gameInstance;
@@ -39,6 +40,7 @@ export class Menu {
     const socketIO = this.gameInstance.socketManager.socket;
     const encodedMsg = Array.from(LobbyQueueRequest.encode(msg).finish());
     socketIO.emit("lobby/queue", encodedMsg);
+    this.enterFullscreen();
     this.isWaiting = true;
   }
 
@@ -81,5 +83,19 @@ export class Menu {
       value = 4;
     }
     this.maxPlayers = value;
+  }
+
+  setFullscreen(value: boolean) {
+    this.isFullscreen = value;
+  }
+
+  enterFullscreen() {
+    document.documentElement.requestFullscreen();
+    this.setFullscreen(true);
+  }
+
+  exitFullscreen() {
+    document.exitFullscreen();
+    this.setFullscreen(false);
   }
 }

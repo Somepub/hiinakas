@@ -35,12 +35,15 @@ const MenuMaxPlayers = observer(() => {
 });
 
 const MenuContent = observer(() => {
+  const { menu } = useStore();
+  
   return (
     <div id={styles.menuContent}>
       <MenuContentStatistics />
       <MenuMaxPlayers />
       <MenuContentFindMatch />
       <MenuContentExit />
+      {menu.isFullscreen && <MenuContentExitFullscreen />}
     </div>
   );
 });
@@ -103,6 +106,15 @@ const MenuContentWaiting = observer(() => {
   );
 });
 
+const MenuContentExitFullscreen = observer(() => {
+  const { menu } = useStore();
+
+  return (
+    <div onClick={() => menu.exitFullscreen()} id={styles.menuContentExitFullscreen}>
+      <span>EXIT FULLSCREEN</span>
+    </div>
+  );
+});
 export const MainMenu = observer(() => {
   const { menu, gameInstance } = useStore();
 
