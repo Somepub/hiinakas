@@ -1,5 +1,5 @@
-use std::collections::VecDeque;
 use crate::protos::card::{Card, Effect, Rank};
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone)]
 pub struct Table {
@@ -44,7 +44,7 @@ impl Table {
             }
         }
 
-        // If the player has already played a card this turn, 
+        // If the player has already played a card this turn,
         // they cannot play another card unless its same rank
         if turn_moves > 0 {
             return false;
@@ -69,69 +69,52 @@ impl Table {
             }
 
             // Current card is special, last card is normal
-            (effect, Effect::NoEffect) if effect != Effect::NoEffect => {
-                match effect {
-                    Effect::AceKiller => last_card.get_rank() == Rank::Ace,
-                    Effect::Transparent | Effect::Constraint => true,
-                    _ => false,
-                }
-            }
+            (effect, Effect::NoEffect) if effect != Effect::NoEffect => match effect {
+                Effect::AceKiller => last_card.get_rank() == Rank::Ace,
+                Effect::Transparent | Effect::Constraint => true,
+                _ => false,
+            },
 
             // Current card is normal, last card is special
-            (Effect::NoEffect, effect) if effect != Effect::NoEffect => {
-                match effect {
-                    Effect::AceKiller => true,
+            (Effect::NoEffect, effect) if effect != Effect::NoEffect => match effect {
+                Effect::AceKiller => true,
+                Effect::Transparent => {
+                    let beneath_card = self.find_card_beneath_transparent();
+                    match beneath_card {
+                        Some(beneath) => match beneath.get_effect() {
+                            Effect::AceKiller => true,
+                            Effect::Constraint => card.get_rank() as u8 <= beneath.get_rank() as u8,
+                            Effect::NoEffect => card.get_rank() as u8 >= beneath.get_rank() as u8,
+                            _ => true,
+                        },
+                        None => true,
+                    }
+                }
+                Effect::Constraint => card.get_rank() as u8 <= last_card.get_rank() as u8,
+                _ => false,
+            },
+
+            // Both cards have special effects
+            (current_effect, last_effect)
+                if current_effect != Effect::NoEffect && last_effect != Effect::NoEffect =>
+            {
+                match last_effect {
                     Effect::Transparent => {
                         let beneath_card = self.find_card_beneath_transparent();
+
                         match beneath_card {
                             Some(beneath) => match beneath.get_effect() {
-                                Effect::AceKiller => true,
-                                Effect::Constraint => {
-                                    card.get_rank() as u8 <= beneath.get_rank() as u8
-                                }
-                                Effect::NoEffect => {
-                                    card.get_rank() as u8 >= beneath.get_rank() as u8
-                                }
+                                Effect::Constraint => true,
+                                Effect::NoEffect => match current_effect {
+                                    Effect::AceKiller => {
+                                        return beneath.get_rank() == Rank::Ace;
+                                    }
+                                    _ => true,
+                                },
                                 _ => true,
                             },
                             None => true,
                         }
-                    }
-                    Effect::Constraint => {
-                        card.get_rank() as u8 <= last_card.get_rank() as u8
-                    }
-                    _ => false,
-                }
-            }
-
-            // Both cards have special effects
-            (current_effect, last_effect) 
-            if current_effect != Effect::NoEffect && last_effect != Effect::NoEffect => {
-                match last_effect {
-                    Effect::Transparent => {
-                        let beneath_card = self.find_card_beneath_transparent();
-                        
-                        if beneath_card.is_none() {
-                            return true;
-                        }
-                        else {
-                            let beneath = beneath_card.unwrap();
-                            match beneath.get_effect() {
-                                Effect::Constraint => {
-                                    true
-                                }
-                                Effect::NoEffect => {
-                                    match current_effect {
-                                        Effect::AceKiller => {
-                                            return last_card.get_rank() == Rank::Ace;
-                                        }
-                                        _ => true,
-                                    }
-                                }
-                                _ => true,
-                            }
-                        }
-
                     }
                     Effect::AceKiller | Effect::Constraint => true,
                     _ => false,
@@ -159,11 +142,12 @@ impl Table {
     }
 
     fn find_card_beneath_transparent(&self) -> Option<&Card> {
-        let cards: Vec<&Card> = self.cards
+        let cards: Vec<&Card> = self
+            .cards
             .iter()
             .filter(|card| card.get_effect() != Effect::Transparent)
             .collect();
-        
+
         cards.last().copied()
     }
 }
@@ -205,7 +189,7 @@ mod tests {
         let mut table = Table::new();
         let lower_card = Card::new(Rank::Seven, Suit::Hearts);
         let higher_card = Card::new(Rank::King, Suit::Clubs);
-        
+
         table.add_card(lower_card);
         assert!(table.is_card_playable(&higher_card, 0).await);
     }
@@ -216,7 +200,7 @@ mod tests {
         let constraint_card = Card::new(Rank::Seven, Suit::Hearts);
         let same_rank = Card::new(Rank::Seven, Suit::Diamonds);
         let different_rank = Card::new(Rank::Eight, Suit::Hearts);
-        
+
         table.add_card(constraint_card);
         assert!(table.is_card_playable(&same_rank, 0).await);
         assert!(!table.is_card_playable(&different_rank, 0).await);
@@ -228,7 +212,7 @@ mod tests {
         let base_card = Card::new(Rank::Six, Suit::Hearts);
         let transparent_card = Card::new(Rank::Eight, Suit::Diamonds);
         let next_card = Card::new(Rank::Seven, Suit::Clubs);
-        
+
         table.add_card(base_card);
         table.add_card(transparent_card);
         assert!(table.is_card_playable(&next_card, 0).await);
@@ -248,10 +232,9 @@ mod tests {
         let mut table = Table::new();
         table.add_card(Card::new(Rank::Ace, Suit::Hearts));
         table.add_card(Card::new(Rank::King, Suit::Diamonds));
-        
+
         let cleared_cards = table.clear();
         assert!(table.is_empty());
         assert_eq!(cleared_cards.len(), 2);
     }
-   
 }
