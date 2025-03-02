@@ -349,19 +349,6 @@ impl GameInstance {
 
         drop(players);
 
-        // TODO:: Not working properly, fix it.
-         // If only holding 3 EFFECR::DESTROY cards and placing them on the table, draw cards after the placement
-        /* 
-        {
-            let mut players = self.players.write().await;
-            let player = players.get_mut(turn_index).unwrap();
-            if player.get_hand_cards().is_empty() && self.table.read().await.get_cards().is_empty() {
-                self.draw_card(player).await;
-                return Ok(());
-            }
-        }
-        */
-
         if needs_cards {
             let mut players = self.players.write().await;
             match players.get_mut(turn_index) {
@@ -421,7 +408,7 @@ impl GameInstance {
         curr_player: &Player
     ) -> GameTurnPlayer {
         GameTurnPlayer {
-            name: curr_player.get_name().to_string(),
+            name: self.players.read().await[*self.turn_index.read().await].get_name().to_string(),
             is_my_turn: self.is_my_turn(curr_player.get_uid()).await,
             action: feedback.action,
             message: feedback.message,

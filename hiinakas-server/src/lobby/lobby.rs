@@ -59,7 +59,10 @@ pub struct GameWinnerRequest {
 
 #[derive(Debug, Clone)]
 pub struct Lobby {
-    queue: Arc<RwLock<SmallVec<[LobbyPlayer; 4]>>>,
+    queue_2p: Arc<RwLock<SmallVec<[LobbyPlayer; 2]>>>,
+    queue_3p: Arc<RwLock<SmallVec<[LobbyPlayer; 3]>>>,
+    queue_4p: Arc<RwLock<SmallVec<[LobbyPlayer; 4]>>>,
+    queue_5p: Arc<RwLock<SmallVec<[LobbyPlayer; 5]>>>,
     games: Arc<RwLock<HashMap<String, Arc<GameInstance>>>>,
     socket_users: Arc<RwLock<HashMap<String, SocketUser>>>,
     lobby_queue_uid: Arc<RwLock<String>>,
@@ -101,20 +104,42 @@ impl Lobby {
     pub fn new(db_pool: Arc<RwLock<SqlitePool>>) -> Self {
         Self {
             db_pool,
-            queue: Arc::new(RwLock::new(SmallVec::new())),
+            queue_2p: Arc::new(RwLock::new(SmallVec::new())),
+            queue_3p: Arc::new(RwLock::new(SmallVec::new())),
+            queue_4p: Arc::new(RwLock::new(SmallVec::new())),
+            queue_5p: Arc::new(RwLock::new(SmallVec::new())),
             games: Arc::new(RwLock::new(HashMap::new())),
             socket_users: Arc::new(RwLock::new(HashMap::new())),
             lobby_queue_uid: Arc::new(RwLock::new(Uuid::new_v4().to_string())),
         }
     }
 
-    pub async fn add_player_to_queue(&self, player: LobbyPlayer) {
-        let mut queue = self.queue.write().await;
-        if !queue.iter().any(|p| p.player_uid == player.player_uid) {
-            queue.push(player);
-            //debug!("Added player to queue. Current queue size: {}", queue.len());
-        } else {
-            //debug!("Player already in queue");
+    pub async fn add_player_to_queue(&self, player: LobbyPlayer, game_type: GameType) {
+        match game_type {
+            GameType::TwoPlayer => {
+                let mut queue = self.queue_2p.write().await;
+                if !queue.iter().any(|p| p.player_uid == player.player_uid) {
+                    queue.push(player);
+                }
+            },
+            GameType::ThreePlayer => {
+                let mut queue = self.queue_3p.write().await;
+                if !queue.iter().any(|p| p.player_uid == player.player_uid) {
+                    queue.push(player);
+                }
+            },
+            GameType::FourPlayer => {
+                let mut queue = self.queue_4p.write().await;
+                if !queue.iter().any(|p| p.player_uid == player.player_uid) {
+                    queue.push(player);
+                }
+            },
+            GameType::FivePlayer => {
+                let mut queue = self.queue_5p.write().await;
+                if !queue.iter().any(|p| p.player_uid == player.player_uid) {
+                    queue.push(player);
+                }
+            },
         }
     }
 
@@ -132,9 +157,39 @@ impl Lobby {
     }
 
     pub async fn remove_player_from_queue(&self, player_uid: &str) {
-        let mut queue = self.queue.write().await;
-        if let Some(pos) = queue.iter().position(|p| p.player_uid == player_uid) {
-            queue.remove(pos);
+        let game_instance = self.get_game_instance(player_uid).await.unwrap();
+        let game_type = match game_instance.get_players().await.len() {
+            2 => GameType::TwoPlayer,
+            3 => GameType::ThreePlayer,
+            4 => GameType::FourPlayer,
+            5 => GameType::FivePlayer,
+            _ => GameType::TwoPlayer,
+        };
+        match game_type {
+            GameType::TwoPlayer => {
+                let mut queue = self.queue_2p.write().await;
+                if let Some(pos) = queue.iter().position(|p| p.player_uid == player_uid) {
+                    queue.remove(pos);
+                }
+            },
+            GameType::ThreePlayer => {
+                let mut queue = self.queue_3p.write().await;
+                if let Some(pos) = queue.iter().position(|p| p.player_uid == player_uid) {
+                    queue.remove(pos);
+                }
+            },
+            GameType::FourPlayer => {
+                let mut queue = self.queue_4p.write().await;
+                if let Some(pos) = queue.iter().position(|p| p.player_uid == player_uid) {
+                    queue.remove(pos);
+                }
+            },
+            GameType::FivePlayer => {
+                let mut queue = self.queue_5p.write().await;
+                if let Some(pos) = queue.iter().position(|p| p.player_uid == player_uid) {
+                    queue.remove(pos);
+                }
+            },
         }
     }
 
@@ -148,9 +203,13 @@ impl Lobby {
         games.get(uid).cloned()
     }
 
-    pub async fn get_queue(&self) -> Vec<LobbyPlayer> {
-        let queue = self.queue.read().await;
-        queue.to_vec()
+    pub async fn get_queue(&self, game_type: GameType) -> Vec<LobbyPlayer> {
+        match game_type {
+            GameType::TwoPlayer => self.queue_2p.read().await.to_vec(),
+            GameType::ThreePlayer => self.queue_3p.read().await.to_vec(),
+            GameType::FourPlayer => self.queue_4p.read().await.to_vec(),
+            GameType::FivePlayer => self.queue_5p.read().await.to_vec(),
+        }
     }
 
     pub async fn get_game_instances(&self) -> Vec<Arc<GameInstance>> {
@@ -241,9 +300,25 @@ impl Lobby {
         *lobby_queue_uid = Uuid::new_v4().to_string();
     }
 
-    pub async fn clear_queue(&self) {
-        let mut queue = self.queue.write().await;
-        queue.clear();
+    pub async fn clear_queue(&self, game_type: GameType) {
+        match game_type {
+            GameType::TwoPlayer => {
+                let mut queue = self.queue_2p.write().await;
+                queue.clear();
+            },
+            GameType::ThreePlayer => {
+                let mut queue = self.queue_3p.write().await;
+                queue.clear();
+            },
+            GameType::FourPlayer => {
+                let mut queue = self.queue_4p.write().await;
+                queue.clear();
+            },
+            GameType::FivePlayer => {
+                let mut queue = self.queue_5p.write().await;
+                queue.clear();
+            },
+        }
     }
 
     pub async fn win_by_default(

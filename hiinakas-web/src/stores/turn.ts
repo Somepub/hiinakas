@@ -22,7 +22,7 @@ export class Turn {
 
     reaction(() => this.isMyTurn, (turn) => {
       toast.dismiss();
-      const turnMessage = turn ? "Your Turn" : "Opponent's Turn";
+      const turnMessage = turn ? "Your Turn" : this.currentTurnName;
       toast(turnMessage, {
         type: "info",
         theme: "dark",

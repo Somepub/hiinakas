@@ -25,7 +25,7 @@ use crate::{
     },
 };
 
-use super::lobby::Lobby;
+use super::lobby::{GameType, Lobby};
 
 #[derive(Debug, Clone)]
 pub struct LobbyHandler {
@@ -154,8 +154,16 @@ impl LobbyHandler {
                 return Ok(());
             }
         };
+
+        let game_type = match message.max_players {
+            2 => GameType::TwoPlayer,
+            3 => GameType::ThreePlayer,
+            4 => GameType::FourPlayer,
+            5 => GameType::FivePlayer,
+            _ => GameType::TwoPlayer,
+        };
         // TODO:: Add maxPlayers to queue
-        self.lobby.add_player_to_queue(player_clone).await;
+        self.lobby.add_player_to_queue(player_clone, game_type).await;
         socket.join(self.lobby.get_lobby_queue_uid().await)?;
         socket.join(player_uid)?;
 
@@ -176,7 +184,7 @@ impl LobbyHandler {
         }
 
         //debug!("Queue length: {:?}", self.lobby.get_queue().await.len());
-        if self.lobby.get_queue().await.len() < (message.max_players as usize) {
+        if self.lobby.get_queue(game_type).await.len() < (message.max_players as usize) {
             //debug!("Queue is less than 2");
             let mut response = LobbyQueueResponse::default();
             response.set_action(LobbyQueueAction::Wait.into());
@@ -190,7 +198,7 @@ impl LobbyHandler {
         let game_uid = game_instance.get_uid().to_string();
         let game_uid_clone = game_uid.clone();
 
-        let queue_players = self.lobby.get_queue().await;
+        let queue_players = self.lobby.get_queue(game_type).await;
         for queue_player in queue_players {
             game_instance.add_player(
                 Player::new(
@@ -263,7 +271,7 @@ impl LobbyHandler {
         socket.join(game_uid)?;
         //debug!("Game instance added to lobby");
 
-        self.lobby.clear_queue().await;
+        self.lobby.clear_queue(game_type).await;
         let _ = self.send_statistics().await;
         //debug!("Statistics sent");
 
