@@ -4,6 +4,8 @@ use prost::Message;
 use socketioxide::extract::{ Data, SocketRef };
 use socketioxide::layer::SocketIoLayer;
 use socketioxide::SocketIo;
+use sqlx::SqlitePool;
+use tokio::sync::RwLock;
 use tracing::{error, info};
 
 use crate::game::handler::GameHandler;
@@ -12,10 +14,10 @@ use crate::lobby::lobby::Lobby;
 use crate::protos::game::GameTurnRequest;
 use crate::protos::lobby::LobbyQueueRequest;
 
-pub async fn socketio_layer() -> SocketIoLayer {
+pub async fn socketio_layer(db_pool: Arc<RwLock<SqlitePool>>) -> SocketIoLayer {
     let (layer, io) = SocketIo::new_layer();
 
-    let lobby = Arc::new(Lobby::new());
+    let lobby = Arc::new(Lobby::new(db_pool.clone()));
     let game_handler = Arc::new(GameHandler::new(lobby.clone(), io.clone()));
     let lobby_handler = Arc::new(LobbyHandler::new(lobby.clone(), io.clone()));
 

@@ -21,7 +21,7 @@ prost = "0.11"
 tonic = "0.9"
 short-uuid = "0.1.0"
 openssl = { version = "0.10" }
-reqwest = { version = "0.12", features = ["json"] }
+sqlx = { version = "0.6", features = ["sqlite", "runtime-tokio-native-tls", "macros"] }
 
 [build-dependencies]
 tonic-build = "0.9"

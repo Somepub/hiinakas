@@ -1,12 +1,13 @@
 use std::sync::Arc;
 use hashbrown::HashMap;
 use serde::{ Deserialize, Serialize };
+use sqlx::SqlitePool;
 use tokio::sync::RwLock;
 use smallvec::SmallVec;
 use tracing::{ error, info };
 use uuid::Uuid;
 
-use crate::{ game::game_instance::GameInstance, protos::lobby::LobbyPlayer };
+use crate::{ game::{self, game_instance::GameInstance}, protos::lobby::LobbyPlayer };
 
 #[derive(Debug, Clone)]
 pub struct SocketUser {
@@ -62,11 +63,20 @@ pub struct Lobby {
     games: Arc<RwLock<HashMap<String, Arc<GameInstance>>>>,
     socket_users: Arc<RwLock<HashMap<String, SocketUser>>>,
     lobby_queue_uid: Arc<RwLock<String>>,
+    db_pool: Arc<RwLock<SqlitePool>>,
+}
+
+pub enum GameType {
+    TwoPlayer,
+    ThreePlayer,
+    FourPlayer,
+    FivePlayer,
 }
 
 impl Lobby {
-    pub fn new() -> Self {
+    pub fn new(db_pool: Arc<RwLock<SqlitePool>>) -> Self {
         Self {
+            db_pool,
             queue: Arc::new(RwLock::new(SmallVec::new())),
             games: Arc::new(RwLock::new(HashMap::new())),
             socket_users: Arc::new(RwLock::new(HashMap::new())),
@@ -219,7 +229,19 @@ impl Lobby {
         game_uid: &str,
         winner_player_uid: &str
     ) -> Result<(), Box<dyn std::error::Error>> {
-        
+        let mut db_pool = self.db_pool.write().await;
+        let mut conn = db_pool.acquire().await?;
+        let game_instance = self.get_game_instance(game_uid).await.unwrap();
+        let game_type = game_instance.get_players().await.len();
+
+        let game_type = match game_type {
+            2 => GameType::TwoPlayer,
+            3 => GameType::ThreePlayer,
+            4 => GameType::FourPlayer,
+            5 => GameType::FivePlayer,
+            _ => return Err("Invalid game type".into()),
+        };
+
         Ok(())
     }
 
