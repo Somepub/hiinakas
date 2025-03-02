@@ -1,4 +1,4 @@
-use std::{ any::Any, sync::Arc };
+use std::sync::Arc;
 use prost::Message;
 use socketioxide::{ extract::SocketRef, SocketIo };
 use tracing::{ debug, error, info };
@@ -121,7 +121,6 @@ impl LobbyHandler {
                 return Ok(());
             }
         };
-        let player_uid_clone = player_uid.clone();
 
         if message.leave {
             let player_clone = match message.player.as_ref() {
@@ -147,6 +146,7 @@ impl LobbyHandler {
                 return Ok(());
             }
         };
+        // TODO:: Add maxPlayers to queue
         self.lobby.add_player_to_queue(player_clone).await;
         socket.join(self.lobby.get_lobby_queue_uid().await)?;
         socket.join(player_uid)?;
@@ -163,7 +163,7 @@ impl LobbyHandler {
                 }
             };
             self.lobby.set_socket_user_player(&socket.id.to_string(), player_clone).await;
-            let player_uid_clone = player_uid_clone.clone();
+            //let player_uid_clone = player_uid_clone.clone();
             //debug!("Socket user set {:?}", player_uid_clone);
         }
 
@@ -245,7 +245,6 @@ impl LobbyHandler {
                 });
             })
         ).await?;
-        let lobby_clone = self.lobby.clone();
         //debug!("Game instance initialized {:?}", game_instance.get_uid());
 
         self.lobby.add_game(game_instance.clone()).await;

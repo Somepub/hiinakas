@@ -1,14 +1,12 @@
 use std::sync::Arc;
-
 use hashbrown::HashMap;
 use serde::{ Deserialize, Serialize };
 use tokio::sync::RwLock;
 use smallvec::SmallVec;
-use tracing::{ debug, error, info };
+use tracing::{ error, info };
 use uuid::Uuid;
-use reqwest::StatusCode;
 
-use crate::{ game::game_instance::GameInstance, protos::lobby::LobbyPlayer, utils::crypto::Crypto };
+use crate::{ game::game_instance::GameInstance, protos::lobby::LobbyPlayer };
 
 #[derive(Debug, Clone)]
 pub struct SocketUser {
@@ -60,15 +58,10 @@ pub struct GameWinnerRequest {
 
 #[derive(Debug, Clone)]
 pub struct Lobby {
-    queue: Arc<RwLock<SmallVec<[LobbyPlayer; 2]>>>,
+    queue: Arc<RwLock<SmallVec<[LobbyPlayer; 4]>>>,
     games: Arc<RwLock<HashMap<String, Arc<GameInstance>>>>,
     socket_users: Arc<RwLock<HashMap<String, SocketUser>>>,
     lobby_queue_uid: Arc<RwLock<String>>,
-    connection_map: Arc<RwLock<HashMap<String, ConnectionResponse>>>,
-}
-
-fn is_debug() -> bool {
-    cfg!(debug_assertions)
 }
 
 impl Lobby {
@@ -78,7 +71,6 @@ impl Lobby {
             games: Arc::new(RwLock::new(HashMap::new())),
             socket_users: Arc::new(RwLock::new(HashMap::new())),
             lobby_queue_uid: Arc::new(RwLock::new(Uuid::new_v4().to_string())),
-            connection_map: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -139,11 +131,6 @@ impl Lobby {
     pub async fn get_socket_user(&self, socket_uid: &str) -> Option<SocketUser> {
         let socket_users = self.socket_users.read().await;
         socket_users.get(socket_uid).cloned()
-    }
-
-    pub async fn get_socket_user_game_uid(&self, socket_uid: &str) -> Option<String> {
-        let socket_users = self.socket_users.read().await;
-        socket_users.get(socket_uid).and_then(|user| user.game_uid.clone())
     }
 
     pub async fn get_lobby_queue_uid(&self) -> String {
