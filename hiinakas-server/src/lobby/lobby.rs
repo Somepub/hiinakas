@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 use tracing::{ error, info };
 use uuid::Uuid;
 
-use crate::{ game::{self, game_instance::GameInstance}, protos::lobby::LobbyPlayer };
+use crate::{ game::{ self, game_instance::GameInstance }, protos::lobby::LobbyPlayer };
 
 #[derive(Debug, Clone)]
 pub struct SocketUser {
@@ -63,14 +63,38 @@ pub struct Lobby {
     games: Arc<RwLock<HashMap<String, Arc<GameInstance>>>>,
     socket_users: Arc<RwLock<HashMap<String, SocketUser>>>,
     lobby_queue_uid: Arc<RwLock<String>>,
-    db_pool: Arc<RwLock<SqlitePool>>,
+    pub db_pool: Arc<RwLock<SqlitePool>>,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum GameType {
-    TwoPlayer,
-    ThreePlayer,
-    FourPlayer,
-    FivePlayer,
+    TwoPlayer = 2,
+    ThreePlayer = 3,
+    FourPlayer = 4,
+    FivePlayer = 5,
+}
+
+impl From<GameType> for i32 {
+    fn from(game_type: GameType) -> Self {
+        match game_type {
+            GameType::TwoPlayer => 2,
+            GameType::ThreePlayer => 3,
+            GameType::FourPlayer => 4,
+            GameType::FivePlayer => 5,
+        }
+    }
+}
+
+impl From<i32> for GameType {
+    fn from(value: i32) -> Self {
+        match value {
+            2 => GameType::TwoPlayer,
+            3 => GameType::ThreePlayer,
+            4 => GameType::FourPlayer,
+            5 => GameType::FivePlayer,
+            _ => GameType::TwoPlayer, // Default case
+        }
+    }
 }
 
 impl Lobby {
@@ -162,7 +186,6 @@ impl Lobby {
         if let Some(game_instance) = self.get_game_instance(game_uid).await {
             match self.win_by_default(game_uid, winner_player_uid).await {
                 Ok(_) => {
-                    
                     info!("Game ended by disconnection: {:?}, {:?}", game_uid, winner_player_uid);
                 }
                 Err(e) => {
@@ -181,7 +204,6 @@ impl Lobby {
             if game_instance.get_current_player().await.unwrap().get_uid() == winner_player_uid {
                 match self.win_by_default(game_uid, winner_player_uid).await {
                     Ok(_) => {
-                        
                         info!("Game ended by default: {:?}", game_uid);
                     }
                     Err(e) => {
@@ -229,21 +251,118 @@ impl Lobby {
         game_uid: &str,
         winner_player_uid: &str
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut db_pool = self.db_pool.write().await;
-        let mut conn = db_pool.acquire().await?;
+        let db_pool = self.db_pool.read().await;
         let game_instance = self.get_game_instance(game_uid).await.unwrap();
-        let game_type = game_instance.get_players().await.len();
 
-        let game_type = match game_type {
+        let players = game_instance.get_players().await;
+        let winner = players
+            .iter()
+            .find(|p| p.get_uid() == winner_player_uid)
+            .ok_or("Winner player not found")?;
+
+        let other_players: Vec<_> = players
+            .iter()
+            .filter(|p| p.get_uid() != winner_player_uid)
+            .collect();
+
+        let game_start_time = game_instance.get_start_time().await;
+        let game_duration = (chrono::Utc::now() - game_start_time).num_seconds();
+        let game_type = match players.len() {
             2 => GameType::TwoPlayer,
             3 => GameType::ThreePlayer,
             4 => GameType::FourPlayer,
             5 => GameType::FivePlayer,
-            _ => return Err("Invalid game type".into()),
+            _ => {
+                return Err("Invalid number of players".into());
+            }
         };
+
+        for player in &players {
+            let player_uid = player.get_public_uid();
+            let player_name = player.get_name();
+            
+            
+            let player_exists = sqlx::query!(
+                r#"SELECT COUNT(*) as count FROM stats WHERE player_uid = ?"#,
+                player_uid
+            )
+            .fetch_one(&*db_pool)
+            .await?
+            .count > 0;
+            
+            if player_exists {
+                let is_winner = player.get_uid() == winner_player_uid;
+                if is_winner {
+                    sqlx::query!(
+                        r#"UPDATE stats SET win_count = win_count + 1 WHERE player_uid = ?"#,
+                        player_uid
+                    )
+                    .execute(&*db_pool)
+                    .await?;
+                } else {
+                    sqlx::query!(
+                        r#"UPDATE stats SET loss_count = loss_count + 1 WHERE player_uid = ?"#,
+                        player_uid
+                    )
+                    .execute(&*db_pool)
+                    .await?;
+                }
+            } else {
+                let is_winner = player.get_uid() == winner_player_uid;
+
+                let win_count = if is_winner { 1 } else { 0 };
+                let loss_count = if is_winner { 0 } else { 1 };
+
+                sqlx::query!(
+                    r#"INSERT INTO stats (player_uid, player_name, win_count, loss_count) 
+                       VALUES (?, ?, ?, ?)"#,
+                    player_uid,
+                    player_name,
+                    win_count,
+                    loss_count
+                )
+                .execute(&*db_pool)
+                .await?;
+            }
+        }
+
+        let other_players_json = serde_json::to_string(
+            &other_players
+                .iter()
+                .map(|p| {
+                    serde_json::json!({
+                    "player_uid": p.get_public_uid(),
+                    "player_name": p.get_name()
+                })
+                })
+                .collect::<Vec<_>>()
+        )?;
+
+        let winner_clone = winner.clone();
+        let winner_public_uid = winner_clone.get_public_uid();
+        let winner_name = winner_clone.get_name();
+        let game_duration_str = game_duration.to_string();
+        let game_start_time_str = game_start_time.to_rfc3339();
+        let game_type_int = i32::from(game_type);
+
+        sqlx::query!(
+            r#"
+            INSERT INTO matches (
+                game_winner_uid, game_winner_name, game_other_players, game_uid, game_duration, game_start_time, 
+                game_type
+            ) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            "#,
+                winner_public_uid,
+                winner_name,
+                other_players_json,
+                game_uid,
+                game_duration_str,
+                game_start_time_str,
+                game_type_int
+            )
+            .execute(&*db_pool).await?;
 
         Ok(())
     }
-
-
 }

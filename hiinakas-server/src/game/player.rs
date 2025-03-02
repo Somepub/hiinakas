@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde::{ Deserialize, Serialize };
 use smallvec::SmallVec;
 
-use crate::protos::card::{Card, SmallCard};
+use crate::protos::card::{ Card, SmallCard };
 
 const MAX_HAND_CARDS: usize = 52;
 const MAX_FLOOR_CARDS: usize = 3;
@@ -14,6 +14,7 @@ type BlindVec = SmallVec<[Card; MAX_BLIND_CARDS]>;
 #[derive(Debug, Clone)]
 pub struct Player {
     uid: String,
+    public_uid: String,
     name: String,
     hand_cards: HandVec,
     floor_cards: FloorVec,
@@ -21,9 +22,10 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(uid: String, name: String) -> Self {
+    pub fn new(uid: String, public_uid: String, name: String) -> Self {
         Self {
             uid,
+            public_uid,
             name,
             hand_cards: SmallVec::new(),
             floor_cards: SmallVec::new(),
@@ -33,6 +35,10 @@ impl Player {
 
     pub fn get_uid(&self) -> &str {
         &self.uid
+    }
+
+    pub fn get_public_uid(&self) -> &str {
+        &self.public_uid
     }
 
     pub fn get_name(&self) -> &str {
@@ -48,9 +54,12 @@ impl Player {
     }
 
     pub fn get_small_floor_cards(&self) -> Vec<SmallCard> {
-        self.floor_cards.iter().map(|c| SmallCard {
-           value: c.to_number() as u32,
-        }).collect()
+        self.floor_cards
+            .iter()
+            .map(|c| SmallCard {
+                value: c.to_number() as u32,
+            })
+            .collect()
     }
 
     pub fn get_blind_cards(&self) -> Vec<Card> {
@@ -97,7 +106,10 @@ impl Player {
     }
 
     pub fn get_card(&mut self, card_uid: &str) -> Option<Card> {
-        self.hand_cards.iter().find(|c| c.get_uid() == card_uid).cloned()
+        self.hand_cards
+            .iter()
+            .find(|c| c.get_uid() == card_uid)
+            .cloned()
     }
 
     pub fn pick_up_floor_cards(&mut self) {
@@ -155,17 +167,20 @@ impl Player {
     pub fn can_play_floor(&self) -> bool {
         self.is_hand_cards_empty() && !self.is_floor_cards_empty()
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protos::card::{Card, Rank, Suit};
+    use crate::protos::card::{ Card, Rank, Suit };
 
     #[test]
     fn test_new_player() {
-        let player = Player::new("123".to_string(), "Test Player".to_string());
+        let player = Player::new(
+            "123".to_string(),
+            "Test Player".to_string(),
+            "Test Player".to_string()
+        );
         assert_eq!(player.get_uid(), "123");
         assert_eq!(player.get_name(), "Test Player");
         assert_eq!(player.get_cards_count(), 0);
@@ -173,13 +188,17 @@ mod tests {
 
     #[test]
     fn test_add_and_remove_hand_card() {
-        let mut player = Player::new("123".to_string(), "Test Player".to_string());
+        let mut player = Player::new(
+            "123".to_string(),
+            "Test Player".to_string(),
+            "Test Player".to_string()
+        );
         let card = Card::new(Rank::Ace, Suit::Hearts);
         let card_uid = card.get_uid().to_string();
-        
+
         player.add_hand_card(card);
         assert_eq!(player.get_hand_cards_count(), 1);
-        
+
         let removed_card = player.remove_hand_card(&card_uid);
         assert!(removed_card.is_some());
         assert_eq!(player.get_hand_cards_count(), 0);
@@ -187,17 +206,17 @@ mod tests {
 
     #[test]
     fn test_can_play_conditions() {
-        let mut player = Player::new("123".to_string(), "Test Player".to_string());
-        
+        let mut player = Player::new("123".to_string(), "public_123".to_string(), "Test Player".to_string());
+
         // Test blind cards
         player.add_blind_card(Card::new(Rank::Ace, Suit::Hearts));
         assert!(player.can_play_blind());
-        
+
         // Test floor cards
         player.add_floor_card(Card::new(Rank::King, Suit::Hearts));
         assert!(!player.can_play_blind());
         assert!(player.can_play_floor());
-        
+
         // Test hand cards
         player.add_hand_card(Card::new(Rank::Queen, Suit::Hearts));
         assert!(!player.can_play_blind());
@@ -206,12 +225,12 @@ mod tests {
 
     #[test]
     fn test_clear_cards() {
-        let mut player = Player::new("123".to_string(), "Test Player".to_string());
-        
+        let mut player = Player::new("123".to_string(), "Test Player".to_string(), "Test Player".to_string());
+
         player.add_hand_card(Card::new(Rank::Ace, Suit::Hearts));
         player.add_floor_card(Card::new(Rank::King, Suit::Hearts));
         player.add_blind_card(Card::new(Rank::Queen, Suit::Hearts));
-        
+
         let cleared_cards = player.clear_cards();
         assert_eq!(cleared_cards.len(), 3);
         assert_eq!(player.get_cards_count(), 0);

@@ -1,24 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Rubik+Maps&family=Rubik+Vinyl&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rubik+Maps&family=Rubik+Marker+Hatch&family=Rubik+Vinyl&family=Rubik+Wet+Paint&display=swap");
-
-@mixin menu-button {
-    display: grid;
-    justify-content: center;
-    height: 75px;
-    background-color: #252526ed;
-    border-top: 3px solid rgba(146, 148, 144, 0.582);
-    cursor: pointer;
-    min-width: 270px;
-
-    span {
-        display: grid;
-        align-content: center;
-    }
-
-    &:hover {
-        color: #6fd6c5b7;
-    }
-}
+@import "../../mixin.scss";
 
 #menu {
   display: grid;
@@ -82,12 +64,14 @@
     text-align: center;
 }
 
-#menuContentFindMatch {
-    @include menu-button;
+.menuButton {
+  @include menu-button;
 }
 
-#menuContentExit {
-   @include menu-button;
+#menuContentWaitingBackbutton {
+  @include menu-button;
+  align-self: end;
+  margin-bottom: 15px;
 }
 
 #menuStatistics {
@@ -118,16 +102,6 @@
   svg {
     font-size: 32px;
   }
-}
-
-#menuContentWaitingBackbutton {
-  @include menu-button;
-  align-self: end;
-  margin-bottom: 15px;
-}
-
-#menuContentExitFullscreen {
-  @include menu-button;
 }
 
 #menuMaxPlayers {

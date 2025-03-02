@@ -94,6 +94,7 @@ export class SocketManager {
       player: {
         playerUid: this.gameInstance.player.uid,
         name: this.gameInstance.player.name,
+        publicUid: this.gameInstance.player.publicUid,
       },
       action,
       cardId,

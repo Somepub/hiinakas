@@ -5,6 +5,7 @@ import { LobbyQueueAction, LobbyQueueRequest, LobbyQueueResponse, LobbyStatistic
 export class Menu {
   gameInstance: GameInstance;
   isWaiting: boolean = false;
+  isOnTop10: boolean = false;
   statistics: LobbyStatistics = null!;
   maxPlayers: number = 2;
   isFullscreen: boolean = false;
@@ -32,6 +33,7 @@ export class Menu {
       player: {
         playerUid: this.gameInstance.player.uid,
         name: this.gameInstance.player.name,
+        publicUid: this.gameInstance.player.publicUid,
       },
       leave: false,
       maxPlayers: this.maxPlayers,
@@ -49,6 +51,7 @@ export class Menu {
       player: {
         playerUid: this.gameInstance.player.uid,
         name: this.gameInstance.player.name,
+        publicUid: this.gameInstance.player.publicUid,
       },
       leave: true,
     });
@@ -59,7 +62,6 @@ export class Menu {
   }
 
   handleLobbyQueue(message: LobbyQueueResponse) {
-
     if (message.action === LobbyQueueAction.START) {
       this.gameInstance.setGameReady();
       this.isWaiting = false;
@@ -70,17 +72,16 @@ export class Menu {
     this.statistics = message;
   }
 
-  exitGame() {
-    document.querySelector('game-curak')?.remove();
-    (window as any).curak = false;
+  setIsOnTop10(value: boolean) {
+    this.isOnTop10 = value;
   }
 
   setMaxPlayers(value: number) {
     if (value < 2) {
       value = 2;
     }
-    if (value > 4) {
-      value = 4;
+    if (value > 5) {
+      value = 5;
     }
     this.maxPlayers = value;
   }
@@ -89,8 +90,16 @@ export class Menu {
     this.isFullscreen = value;
   }
 
-  enterFullscreen() {
-    document.documentElement.requestFullscreen();
+  async enterFullscreen() {
+    if (document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen().catch(err => console.error(err));
+    } else {
+      try {
+        await (document.documentElement as any).webkitRequestFullscreen();
+      } catch (err) {
+        console.error("Try ios: ", err);
+      }
+    }
     this.setFullscreen(true);
   }
 

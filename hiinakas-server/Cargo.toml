@@ -22,6 +22,8 @@ tonic = "0.9"
 short-uuid = "0.1.0"
 openssl = { version = "0.10" }
 sqlx = { version = "0.6", features = ["sqlite", "runtime-tokio-native-tls", "macros"] }
+chrono = "0.4"
+dotenv = "0.15"
 
 [build-dependencies]
 tonic-build = "0.9"

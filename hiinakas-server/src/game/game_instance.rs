@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 use crate::utils::timer::Timer;
+use chrono::{ DateTime, Utc };
 use smallvec::SmallVec;
 use tokio::sync::RwLock;
 use tracing::{ debug, info, error };
@@ -19,7 +20,7 @@ use crate::protos::{
 
 use super::{ deck::Deck, player::Player, table::Table };
 
-const MAX_PLAYERS: usize = 4;
+const MAX_PLAYERS: usize = 5;
 
 #[derive(Debug, Clone)]
 pub struct GameInstance {
@@ -32,6 +33,7 @@ pub struct GameInstance {
     init: Arc<RwLock<bool>>,
     timer: Arc<RwLock<Option<Timer>>>,
     stop_signal: Arc<RwLock<bool>>,
+    created_at: Arc<RwLock<DateTime<Utc>>>,
 }
 
 impl GameInstance {
@@ -46,6 +48,7 @@ impl GameInstance {
             init: Arc::new(RwLock::new(false)),
             timer: Arc::new(RwLock::new(None)),
             stop_signal: Arc::new(RwLock::new(false)),
+            created_at: Arc::new(RwLock::new(Utc::now())),
         }
     }
 
@@ -523,6 +526,10 @@ impl GameInstance {
             player.is_floor_cards_empty() &&
             player.is_blind_cards_empty()
     }
+
+    pub async fn get_start_time(&self) -> DateTime<Utc> {
+        *self.created_at.read().await
+    }
 }
 
 #[cfg(test)]
@@ -539,7 +546,7 @@ mod tests {
     #[tokio::test]
     async fn test_add_player() {
         let instance = GameInstance::new();
-        let player = Player::new("test_uid".to_string(), "Test Player".to_string());
+        let player = Player::new("test_uid".to_string(), "test_public_uid".to_string(), "Test Player".to_string());
 
         instance.add_player(player).await.unwrap();
 
@@ -550,8 +557,8 @@ mod tests {
     #[tokio::test]
     async fn test_game_initialization() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "Player 2".to_string());
+        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string());
+        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string());
 
         instance.add_player(player1).await.unwrap();
         instance.add_player(player2).await.unwrap();
@@ -571,8 +578,8 @@ mod tests {
     #[tokio::test]
     async fn test_play_card_success() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "Player 2".to_string());
+        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string());
+        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string());
         let player1_clone = player1.clone();
 
         instance.add_player(player1).await.unwrap();
@@ -599,15 +606,15 @@ mod tests {
     #[tokio::test]
     async fn test_play_card_failure() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "Player 2".to_string());
+        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string());
+        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string());
     }
 
     #[tokio::test]
     async fn test_pickup_turn() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "Player 2".to_string());
+        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string());
+        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string());
 
         instance.add_player(player1).await.unwrap();
         instance.add_player(player2).await.unwrap();

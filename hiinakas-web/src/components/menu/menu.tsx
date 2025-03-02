@@ -8,6 +8,7 @@ import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons/faCaretDown";
 import { faCaretUp } from "@fortawesome/free-solid-svg-icons/faCaretUp";
 import { NameInput } from "./nameinput";
+import { Stats } from "./stats";
 
 const MenuLogo = () => {
   return (
@@ -42,7 +43,7 @@ const MenuContent = observer(() => {
       <MenuContentStatistics />
       <MenuMaxPlayers />
       <MenuContentFindMatch />
-      <MenuContentExit />
+      <MenuContentTop10 />
       {menu.isFullscreen && <MenuContentExitFullscreen />}
     </div>
   );
@@ -75,17 +76,17 @@ const MenuContentStatistics = observer(() => {
 const MenuContentFindMatch = observer(() => {
   const { menu } = useStore();
   return (
-    <div onClick={() => menu.findMatch()} id={styles.menuContentFindMatch}>
+    <div className={styles.menuButton} onClick={() => menu.findMatch()}>
       <span>FIND MATCH</span>
     </div>
   );
 });
 
-const MenuContentExit = observer(() => {
+const MenuContentTop10 = observer(() => {
   const { menu } = useStore();
   return (
-    <div onClick={() => menu.exitGame()} id={styles.menuContentExit}>
-      <span>HOW TO PLAY</span>
+    <div className={styles.menuButton} onClick={() => menu.setIsOnTop10(true)}>
+      <span>TOP 10</span>
     </div>
   );
 });
@@ -99,7 +100,7 @@ const MenuContentWaiting = observer(() => {
         <span>SEARCHING FOR A MATCH...</span>
         <FontAwesomeIcon spin icon={faSpinner} />
       </div>
-      <div onClick={() => menu.leaveQueue()} id={styles.menuContentWaitingBackbutton}>
+      <div className={styles.menuButton} onClick={() => menu.leaveQueue()}>
         <span>BACK</span>
       </div>
     </div>
@@ -110,11 +111,12 @@ const MenuContentExitFullscreen = observer(() => {
   const { menu } = useStore();
 
   return (
-    <div onClick={() => menu.exitFullscreen()} id={styles.menuContentExitFullscreen}>
+    <div className={styles.menuButton} onClick={() => menu.exitFullscreen()}>
       <span>EXIT FULLSCREEN</span>
     </div>
   );
 });
+
 export const MainMenu = observer(() => {
   const { menu, gameInstance } = useStore();
 
@@ -125,8 +127,9 @@ export const MainMenu = observer(() => {
     >
       <MenuLogo />
       {!gameInstance.player.name && !gameInstance.player.uid && <NameInput />}
-      {!menu.isWaiting && <MenuContent />}
-      {menu.isWaiting && <MenuContentWaiting />}
+      {!menu.isWaiting && !menu.isOnTop10 && <MenuContent />}
+      {menu.isWaiting && !menu.isOnTop10 && <MenuContentWaiting />}
+      {menu.isOnTop10 && <Stats />}
     </div>
   );
 });

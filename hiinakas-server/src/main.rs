@@ -8,6 +8,8 @@ pub mod utils;
 
 #[tokio::main]
 async fn main() {
+    dotenv::dotenv().ok();
+
     fmt::Subscriber::builder()
         .with_env_filter(EnvFilter::from_default_env())
         .with_file(true)

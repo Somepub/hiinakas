@@ -10,11 +10,43 @@ pub struct LobbyPlayer {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PlayerStats {
+    #[prost(string, tag = "1")]
+    pub uid: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "3")]
+    pub wins: u32,
+    #[prost(uint32, tag = "4")]
+    pub losses: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MatchHistory {
+    #[prost(string, tag = "1")]
+    pub game_uid: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub winner_uid: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub winner_name: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "4")]
+    pub duration: u32,
+    #[prost(uint32, tag = "5")]
+    pub game_type: u32,
+    #[prost(string, repeated, tag = "6")]
+    pub other_players: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LobbyStatistics {
     #[prost(uint32, tag = "1")]
     pub player_count: u32,
     #[prost(uint32, tag = "2")]
     pub game_count: u32,
+    #[prost(message, repeated, tag = "3")]
+    pub player_stats: ::prost::alloc::vec::Vec<PlayerStats>,
+    #[prost(message, repeated, tag = "4")]
+    pub match_history: ::prost::alloc::vec::Vec<MatchHistory>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
