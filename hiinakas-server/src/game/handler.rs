@@ -6,6 +6,7 @@ use socketioxide::SocketIo;
 
 use crate::lobby::lobby::Lobby;
 
+use crate::protos::card::Effect;
 use crate::protos::game::{
     GameInstanceAction, GameInstanceMessage, GameInstanceMessageAction, GameTurnFeedback, GameTurnRequest, GameTurnResponse
 };
@@ -101,8 +102,11 @@ impl GameHandler {
         }
 
         let game_instance_clone = game.clone();
+        let mut player = game.get_current_player().await.unwrap();
+        let card_rank = player.get_card(&msg.card_id).unwrap().to_number();
 
-        if !game.play_card(msg.card_id.to_string()).await {
+        let play_card_feedback = game.play_card(msg.card_id.to_string()).await;
+        if !play_card_feedback.is_played {
             error!("Failed to play card: {:?}", msg.card_id);
             let feedback = GameTurnFeedback {
                 action: GameInstanceAction::PlayCard.into(),
@@ -120,15 +124,21 @@ impl GameHandler {
             self.generate_player_game_turn(game, player_uid, feedback).await;
             return;
         }
+        
         let feedback = GameTurnFeedback {
             action: GameInstanceAction::PlayCard.into(),
             message: Some(GameInstanceMessage {
                 r#type: GameInstanceMessageAction::Info.into(),
-                message: "Card played".to_string(),
+                message: format!("Card played:{}:{}", play_card_feedback.effect.as_str_name(), card_rank),
             }),
             has_won: false,
             has_disconnect: false,
         };
+
+        if play_card_feedback.effect == Effect::Destroy {
+            game_instance_clone.draw_cards(&mut player).await;
+        }
+
         let _ = game_instance_clone.look_next_turn().await;
         let _ = self.generate_players_game_turn(game, feedback).await;
     }
@@ -210,7 +220,7 @@ impl GameHandler {
                 action: GameInstanceAction::PickUp.into(),
                 message: Some(GameInstanceMessage {
                     r#type: GameInstanceMessageAction::Info.into(),
-                    message: "Turn picked up".to_string(),
+                    message: format!("Turn picked up: {}", msg.player.unwrap().name),
                 }),
                 has_won: false,
                 has_disconnect: false,

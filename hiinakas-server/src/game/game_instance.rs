@@ -36,6 +36,12 @@ pub struct GameInstance {
     created_at: Arc<RwLock<DateTime<Utc>>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct PlayCardFeedback {
+    pub is_played: bool,
+    pub effect: Effect,
+}
+
 impl GameInstance {
     pub fn new() -> Self {
         Self {
@@ -168,71 +174,80 @@ impl GameInstance {
         Ok(())
     }
 
-    pub async fn play_card(&self, card_uid: String) -> bool {
+    pub async fn play_card(&self, card_uid: String) -> PlayCardFeedback {
         let turn_index = *self.turn_index.read().await;
-        let card_played = {
-            let mut players = self.players.write().await;
+        
+        let mut players = self.players.write().await;
 
-            let player = match players.get_mut(turn_index) {
-                Some(p) => p,
-                None => {
-                    return false;
-                }
-            };
-
-            let card = match player.get_card(&card_uid) {
-                Some(c) => c,
-                None => {
-                    return false;
-                }
-            };
-
-            let mut table = self.table.write().await;
-            if !table.is_card_playable(&card, self.get_turn_moves().await).await {
-                return false;
-            }
-
-            player.remove_hand_card(&card_uid);
-
-            let last_card = table.get_top_card();
-            match last_card {
-                Some(last_card) => {
-                    let rank = last_card.get_rank();
-                    if rank == card.get_rank() {
-                        self.set_turn_moves(0).await;
-                    }
-                }
-                None => {
-                    // continue...
-                }
-            }
-            
-            // If 4 cards
-            let table_cards = table.get_cards();
-            if table_cards.len() >= 3 {
-                let last_three = &table_cards[table_cards.len().saturating_sub(3)..];
-                if
-                    last_three.len() == 3 &&
-                    last_three.iter().all(|c| c.get_rank() == card.get_rank())
-                {
-                    table.clear();
-                    self.set_turn_moves(0).await;
-                    return true;
-                }
-            }
-
-            if card.get_effect() == Effect::Destroy {
-                table.clear();
-                self.set_turn_moves(0).await;
-                true
-            } else {
-                table.add_card(card);
-                self.set_turn_moves(self.get_turn_moves().await + 1).await;
-                true
+        let player = match players.get_mut(turn_index) {
+            Some(p) => p,
+            None => {
+                return PlayCardFeedback {
+                    is_played: false,
+                    effect: Effect::NoEffect,
+                };
             }
         };
 
-        card_played
+        let card = match player.get_card(&card_uid) {
+            Some(c) => c,
+            None => {
+                return PlayCardFeedback {
+                    is_played: false,
+                    effect: Effect::NoEffect,
+                };
+            }
+        };
+
+        let mut table = self.table.write().await;
+        if !table.is_card_playable(&card, self.get_turn_moves().await).await {
+            return PlayCardFeedback {
+                is_played: false,
+                effect: Effect::NoEffect,
+            };
+        }
+
+        player.remove_hand_card(&card_uid);
+
+        let last_card = table.get_top_card();
+        if let Some(last_card) = last_card {
+            let rank = last_card.get_rank();
+            if rank == card.get_rank() {
+                self.set_turn_moves(0).await;
+            }
+        }
+        
+        // If 4 cards
+        let table_cards = table.get_cards();
+        if table_cards.len() >= 3 {
+            let last_three = &table_cards[table_cards.len().saturating_sub(3)..];
+            if last_three.len() == 3 && 
+               last_three.iter().all(|c| c.get_rank() == card.get_rank()) {
+                table.clear();
+                self.set_turn_moves(0).await;
+                return PlayCardFeedback {
+                    is_played: true,    
+                    effect: Effect::Destroy,
+                };
+            }
+        }
+
+        if card.get_effect() == Effect::Destroy {
+            table.clear();
+            self.set_turn_moves(0).await;
+            PlayCardFeedback {
+                is_played: true,
+                effect: Effect::Destroy,
+            }
+        } else {
+            let effect = card.get_effect();
+            table.add_card(card);
+            self.set_turn_moves(self.get_turn_moves().await + 1).await;
+            PlayCardFeedback {
+                is_played: true,
+                effect: effect,
+            }
+        }
     }
 
     pub async fn end_turn(&self) -> bool {
@@ -314,7 +329,7 @@ impl GameInstance {
         }
     }
 
-    async fn draw_cards(&self, player: &mut Player) {
+    pub async fn draw_cards(&self, player: &mut Player) {
         const TARGET_CARDS: usize = 3;
         let current_cards = player.get_hand_cards().len();
         

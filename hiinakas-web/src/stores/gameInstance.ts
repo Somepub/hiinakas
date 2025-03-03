@@ -11,6 +11,7 @@ import { Opponent } from "./opponent";
 import { Table } from "./table";
 import { Turn } from "./turn";
 import { Timer } from "./timer";
+import { FloatingTextStore } from "./floatingTextStore";
 
 export class GameInstance {
   gameReady: boolean = false;
@@ -24,12 +25,12 @@ export class GameInstance {
   deck: Deck;
   turn: Turn;
   menu: Menu = null;
-  
+  floatingTextStore: FloatingTextStore;
   currentLobby: string = "";
   iswebSocketConnected: boolean = false;
   timer: Timer;
 
-  constructor(localStore: LocalStore, timer: Timer) {
+  constructor(localStore: LocalStore, timer: Timer, floatingTextStore: FloatingTextStore) {
     this.zones = new GameZones();
     this.player = new PlayerState(localStore);
     this.notifications = new NotificationManager();
@@ -41,6 +42,7 @@ export class GameInstance {
     this.deck = new Deck();
     this.opponents = [];
     this.turn = new Turn(this);
+    this.floatingTextStore = floatingTextStore;
     
     makeAutoObservable(this);
     this.setupWatchers();

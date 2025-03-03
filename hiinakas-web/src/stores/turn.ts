@@ -4,8 +4,11 @@ import dropCard from "../assets/sounds/cardput.mp3";
 import drawCard from "../assets/sounds/carddraw.mp3";
 import suffleCards from "../assets/sounds/cardshuffle.mp3";
 import pickUpCards from "../assets/sounds/pickup.mp3";
+import destroyCard from "../assets/sounds/destroy_card.mp3";
 import { GameInstance } from "./gameInstance";
 import { toast } from "react-toastify";
+import { Effect } from "@proto/card";
+import { convertSmallCardToCard } from "@components/card/floorCards";
 
 export class Turn {
   currentTurnName: string = "";
@@ -60,6 +63,54 @@ export class Turn {
   }
 
   playSound() {
+    const getRankDisplay = (rank: number): string => {
+      const rankValue = rank + 2;
+
+      switch (rankValue) {
+        case 11:
+          return "J";
+        case 12:
+          return "Q";
+        case 13:
+          return "K";
+        case 14:
+          return "A";
+        default:
+          return rankValue.toString();
+      }
+    };
+
+    const getEffectDisplay = (effect: Effect): string => {
+      switch (effect) {
+        case Effect.DESTROY:
+          return "DESTROY";
+        case Effect.CONSTRAINT:
+          return "CONSTRAINT";
+        case Effect.ACE_KILLER:
+          return "ACE KILLER";
+        case Effect.TRANSPARENT:
+          return "TRANSPARENT";
+        case Effect.NO_EFFECT:
+        default:
+          return "";
+      }
+    };
+
+    const stringToEffect = (effectString: string): Effect => {
+      switch (effectString.toUpperCase()) {
+          case 'DESTROY':
+              return Effect.DESTROY;
+          case 'CONSTRAINT':
+              return Effect.CONSTRAINT;
+          case 'ACE_KILLER':
+              return Effect.ACE_KILLER;
+          case 'TRANSPARENT':
+              return Effect.TRANSPARENT;
+          default:
+              return Effect.NO_EFFECT;
+      }
+  };
+
     if(this.turnMessage.type !== GameInstanceMessageAction.ERROR) {
       switch (this.action) {
         case GameInstanceAction.INIT:
@@ -69,10 +120,28 @@ export class Turn {
           new Audio(drawCard).play();
           break;
         case GameInstanceAction.PICK_UP:
+          const isMyTurn = this.gameInstance.turn.isMyTurn;
+          const turnPlayerName = this.turnMessage.message.split(":")[1];
+          if(!isMyTurn) {
+            this.gameInstance.floatingTextStore.showText(`${turnPlayerName} picked up`);
+          }
+
           new Audio(pickUpCards).play();
           break;
         case GameInstanceAction.PLAY_CARD:
-          new Audio(dropCard).play();
+          const cardEffect = stringToEffect(this.turnMessage.message.split(":")[1]);
+          const smallCard = convertSmallCardToCard({ value: Number(this.turnMessage.message.split(":")[2]) });
+
+          this.gameInstance.floatingTextStore.showText(
+            cardEffect !== Effect.NO_EFFECT && cardEffect !== Effect.ACE_KILLER
+              ? getEffectDisplay(cardEffect)
+              : getRankDisplay(Number(smallCard.rank))
+          );
+          if(cardEffect === Effect.DESTROY) {
+            new Audio(destroyCard).play();
+          } else {
+            new Audio(dropCard).play();
+          }
           break;
       }
     }
