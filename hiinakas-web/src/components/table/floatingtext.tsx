@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSpring, animated } from '@react-spring/web';
-import styles from './FloatingText.module.scss';
+import styles from './floatingtext.module.scss';
 
 interface FloatingTextProps {
     text: string;
