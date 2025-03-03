@@ -11,15 +11,15 @@ export class LocalStore {
     }
 
     getPlayerUid(): string {
-        return this.localStorage.getItem(PLAYER_UID_KEY) || null;
+        return this.localStorage.getItem(PLAYER_UID_KEY);
     }
 
     getPlayerName(): string {
-        return this.localStorage.getItem(PLAYER_NAME_KEY) || null;
+        return this.localStorage.getItem(PLAYER_NAME_KEY);
     }
 
     getPlayerPublicUid(): string {
-        return this.localStorage.getItem(PLAYER_PUBLIC_UID_KEY) || null;
+        return this.localStorage.getItem(PLAYER_PUBLIC_UID_KEY);
     }
 
     setPlayerUid(uid: string) {
