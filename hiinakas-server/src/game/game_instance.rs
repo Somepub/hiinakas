@@ -207,7 +207,7 @@ impl GameInstance {
                 }
             }
             
-            // TODO:: Not working properly, fix it.
+            // If 4 cards
             let table_cards = table.get_cards();
             if table_cards.len() >= 3 {
                 let last_three = &table_cards[table_cards.len().saturating_sub(3)..];

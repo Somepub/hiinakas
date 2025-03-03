@@ -95,7 +95,7 @@ impl From<i32> for GameType {
             3 => GameType::ThreePlayer,
             4 => GameType::FourPlayer,
             5 => GameType::FivePlayer,
-            _ => GameType::TwoPlayer, // Default case
+            _ => GameType::TwoPlayer,
         }
     }
 }
@@ -156,9 +156,36 @@ impl Lobby {
         });
     }
 
-    pub async fn remove_player_from_queue(&self, player_uid: &str) {
-        let game_instance = self.get_game_instance(player_uid).await.unwrap();
-        let game_type = match game_instance.get_players().await.len() {
+    pub async fn is_player_in_queue(&self, player_uid: &str, max_players: u32) -> bool {
+        let game_type = match max_players {
+            2 => GameType::TwoPlayer,
+            3 => GameType::ThreePlayer,
+            4 => GameType::FourPlayer,
+            5 => GameType::FivePlayer,
+            _ => GameType::TwoPlayer,
+        };
+        match game_type {
+            GameType::TwoPlayer => {
+                let queue = self.queue_2p.read().await;
+                queue.iter().any(|p| p.player_uid == player_uid)
+            },
+            GameType::ThreePlayer => {
+                let queue = self.queue_3p.read().await;
+                queue.iter().any(|p| p.player_uid == player_uid)
+            },
+            GameType::FourPlayer => {
+                let queue = self.queue_4p.read().await;
+                queue.iter().any(|p| p.player_uid == player_uid)
+            },
+            GameType::FivePlayer => {
+                let queue = self.queue_5p.read().await;
+                queue.iter().any(|p| p.player_uid == player_uid)
+            },
+        }
+    }
+
+    pub async fn remove_player_from_queue(&self, player_uid: &str, max_players: u32) {
+        let game_type = match max_players {
             2 => GameType::TwoPlayer,
             3 => GameType::ThreePlayer,
             4 => GameType::FourPlayer,

@@ -89,7 +89,12 @@ impl LobbyHandler {
                         }
                     }
 
-                    self.lobby.remove_player_from_queue(&player_clone.player_uid).await;
+                    // TODO:: Dirty fix, fix it
+                    for max_player_queue in 2..6 {
+                        if self.lobby.is_player_in_queue(&player_clone.player_uid, max_player_queue).await {
+                            self.lobby.remove_player_from_queue(&player_clone.player_uid, max_player_queue).await;
+                        }
+                    }
                 }
                 None => {
                     //error!("Player is none");
@@ -137,7 +142,7 @@ impl LobbyHandler {
                     return Ok(());
                 }
             };
-            self.lobby.remove_player_from_queue(&player_clone.player_uid).await;
+            self.lobby.remove_player_from_queue(&player_clone.player_uid, message.max_players).await;
 
             socket.leave(self.lobby.get_lobby_queue_uid().await)?;
             socket.leave(player_clone.player_uid)?;
