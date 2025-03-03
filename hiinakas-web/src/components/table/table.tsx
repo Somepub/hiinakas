@@ -5,7 +5,7 @@ import styles from "./table.module.scss";
 import { useStore } from "@stores/stores";
 import { Deck } from "./deck";
 import useMeasure from "react-use-measure";
-import { FloatingText } from "./floatingText";
+import { FloatingText } from "./floatingtext";
 
 const Table = observer(() => {
   const [ref, bounds] = useMeasure();
