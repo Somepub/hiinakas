@@ -12,13 +12,13 @@ const MainViewSwitch = observer(() => {
         const currentPublicUid = localStore.getPlayerPublicUid();
         if (!currentPublicUid || !validateUid(currentPublicUid) ) {
             const newPublicUid = v4();
-            localStore.setPlayerPublicUid(newPublicUid);
+            gameInstance.player.setPublicUid(newPublicUid);
         }
 
         const currentUid = localStore.getPlayerUid();
         if (!currentUid || !validateUid(currentUid) ) {
             const newUid = v4();
-            localStore.setPlayerUid(newUid);
+            gameInstance.player.setUid(newUid);
         }
 
     }, []);
