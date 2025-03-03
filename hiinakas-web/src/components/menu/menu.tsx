@@ -126,7 +126,7 @@ export const MainMenu = observer(() => {
       id={styles.menu}
     >
       <MenuLogo />
-      {!gameInstance.player.name && !gameInstance.player.uid && <NameInput />}
+      {!gameInstance.player.name && <NameInput />}
       {!menu.isWaiting && !menu.isOnTop10 && <MenuContent />}
       {menu.isWaiting && !menu.isOnTop10 && <MenuContentWaiting />}
       {menu.isOnTop10 && <Stats />}
