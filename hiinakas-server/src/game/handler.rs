@@ -156,7 +156,7 @@ impl GameHandler {
                 action: GameInstanceAction::Win.into(),
                 message: Some(GameInstanceMessage {
                     r#type: GameInstanceMessageAction::Info.into(),
-                    message: "Game over".to_string(),
+                    message: format!("Game over:{}", msg.player.unwrap().name),
                 }),
                 has_won: true,
                 has_disconnect: false,
