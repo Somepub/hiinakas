@@ -9,7 +9,7 @@ pub async fn init_database_and_return_pool() -> Arc<RwLock<SqlitePool>> {
     
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect("sqlite:game.db")
+        .connect("sqlite:/tmp/game.db")
         .await
         .expect("Failed to connect to the database");
 

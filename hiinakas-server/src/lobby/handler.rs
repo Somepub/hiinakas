@@ -90,14 +90,14 @@ impl LobbyHandler {
                     }
 
                     // TODO:: Dirty fix, fix it
-                    for max_player_queue in 2..6 {
+                    for max_player_queue in 2..5 {
                         if self.lobby.is_player_in_queue(&player_clone.player_uid, max_player_queue).await {
                             self.lobby.remove_player_from_queue(&player_clone.player_uid, max_player_queue).await;
                         }
                     }
                 }
                 None => {
-                    //error!("Player is none");
+                    error!("Player is none, THIS SHOULD NOT HAPPEN!");
                 }
             }
         }
@@ -124,7 +124,7 @@ impl LobbyHandler {
         //debug!("Socket user: {:?}", socket_user);
 
         if socket_user.is_none() {
-            error!("Socket user is none");
+            error!("Socket user is none, THIS SHOULD NOT HAPPEN! [Unless....] {:?} {:?}", socket.id, message);
             return Ok(());
         }
 
@@ -147,12 +147,11 @@ impl LobbyHandler {
             socket.leave(self.lobby.get_lobby_queue_uid().await)?;
             socket.leave(player_clone.player_uid)?;
 
-            self.lobby.remove_socket_user(&socket.id.to_string()).await;
-            //debug!("Player left queue");
+            debug!("Player left queue {:?}", player_uid);
             return Ok(());
         }
 
-        //debug!("{:?}", self.lobby.type_id());
+        debug!("Socket {:?}: is trying to join queue =: {:?} {:?}", socket.id, message.max_players, message.player.as_ref().unwrap().name);
         let player_clone = match message.player.as_ref() {
             Some(p) => p.clone(),
             None => {
@@ -179,7 +178,7 @@ impl LobbyHandler {
             let player_clone = match message.player.as_ref() {
                 Some(p) => p.clone(),
                 None => {
-                    error!("Player is none???");
+                    error!("Player is none???, THIS SHOULD NOT HAPPEN!");
                     return Ok(());
                 }
             };
@@ -190,14 +189,15 @@ impl LobbyHandler {
 
         //debug!("Queue length: {:?}", self.lobby.get_queue().await.len());
         if self.lobby.get_queue(game_type).await.len() < (message.max_players as usize) {
-            //debug!("Queue is less than 2");
+            debug!("Player {:?}: is waiting for more players on queue of: {:?}", message.player.as_ref().unwrap().name, message.max_players);
+
             let mut response = LobbyQueueResponse::default();
             response.set_action(LobbyQueueAction::Wait.into());
             socket.emit("lobby/queue", vec![response.encode_to_vec()])?;
             return Ok(());
         }
 
-        //debug!("Creating game instance");
+        debug!("Player {:?}: Creating game instance for {:?}", message.player.as_ref().unwrap().name, game_type);
         let game_instance = GameInstance::new();
         let game_instance = Arc::new(game_instance);
         let game_uid = game_instance.get_uid().to_string();
@@ -326,7 +326,7 @@ impl LobbyHandler {
         //debug!("New lobby queue uid set");
 
         // TODO: Connect players to game server
-
+        info!("Player {:?}: Created a game and it has started for {:?}", message.player.as_ref().unwrap().name, message.max_players);
         Ok(())
     }
 
