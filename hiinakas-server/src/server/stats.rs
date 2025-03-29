@@ -4,12 +4,22 @@ use tokio::sync::RwLock;
 use sqlx::SqlitePool;
 use tracing::info;
 
+fn is_debug() -> bool {
+    cfg!(debug_assertions)
+}
+
 pub async fn init_database_and_return_pool() -> Arc<RwLock<SqlitePool>> {
     info!("Initializing database connection...");
     
+    let db_path = if is_debug() {
+        "sqlite:game.db"
+    } else {
+        "sqlite:/opt/hiinakas/game.db"
+    };
+
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect("sqlite:/tmp/game.db")
+        .connect(db_path)
         .await
         .expect("Failed to connect to the database");
 
