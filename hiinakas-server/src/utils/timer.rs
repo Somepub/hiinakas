@@ -1,28 +1,33 @@
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-use tokio::sync::RwLock;
+use std::pin::Pin;
+use std::time::Duration;
+use tokio::time::{sleep, Sleep, Instant};
 
-#[derive(Clone, Debug)]
 pub struct Timer {
-    timer: Arc<RwLock<Instant>>,
+    sleep: Pin<Box<Sleep>>,
+    end_time: Instant,
     duration: Duration,
 }
 
 impl Timer {
-    pub fn with_duration(duration: Duration) -> Self {
+    pub fn new(duration: Duration) -> Self {
+        let end_time = Instant::now() + duration;
         Self {
-            timer: Arc::new(RwLock::new(Instant::now())),
+            sleep: Box::pin(sleep(duration)),
+            end_time,
             duration,
         }
     }
 
-    pub async fn reset(&self) {
-        let mut timer = self.timer.write().await;
-        *timer = Instant::now();
+    pub fn reset(&mut self) {
+        self.end_time = Instant::now() + self.duration;
+        self.sleep.as_mut().reset(self.end_time);
     }
 
-    pub async fn expired(&self) -> bool {
-        let timer = self.timer.read().await;
-        timer.elapsed() >= self.duration
+    pub fn expired(&self) -> bool {
+        Instant::now() >= self.end_time
+    }
+
+    pub async fn wait_until_expired(&mut self) {
+        self.sleep.as_mut().await;
     }
 }

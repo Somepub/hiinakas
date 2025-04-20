@@ -2,9 +2,10 @@ use crate::utils::timer::Timer;
 use chrono::{DateTime, Utc};
 use smallvec::SmallVec;
 use std::{sync::Arc, time::Duration};
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, Mutex};
 use tracing::{debug, error, info, trace};
 use uuid::Uuid;
+use tokio::sync::mpsc;
 
 use crate::protos::{
     card::{Effect, SmallCard},
@@ -19,6 +20,12 @@ use super::{deck::Deck, player::Player, table::Table};
 const MAX_PLAYERS: usize = 5;
 const TIMER_DURATION: u64 = 120070;
 
+#[derive(Clone)]
+pub enum TimerCommand {
+    Reset,
+    Stop,
+}
+
 #[derive(Debug, Clone)]
 pub struct GameInstance {
     uid: String,
@@ -28,8 +35,8 @@ pub struct GameInstance {
     turn_index: Arc<RwLock<usize>>,
     turn_moves: Arc<RwLock<usize>>,
     init: Arc<RwLock<bool>>,
-    timer: Arc<RwLock<Option<Timer>>>,
-    stop_signal: Arc<RwLock<bool>>,
+    timer_tx: Arc<Mutex<mpsc::Sender<TimerCommand>>>,
+    timer_rx: Arc<Mutex<mpsc::Receiver<TimerCommand>>>,
     created_at: Arc<RwLock<DateTime<Utc>>>,
 }
 
@@ -41,6 +48,7 @@ pub struct PlayCardFeedback {
 
 impl GameInstance {
     pub fn new() -> Self {
+        let (tx, rx) = mpsc::channel(1);
         Self {
             uid: Uuid::new_v4().to_string(),
             players: Arc::new(RwLock::new(SmallVec::with_capacity(MAX_PLAYERS))),
@@ -49,8 +57,8 @@ impl GameInstance {
             turn_index: Arc::new(RwLock::new(0)),
             turn_moves: Arc::new(RwLock::new(0)),
             init: Arc::new(RwLock::new(false)),
-            timer: Arc::new(RwLock::new(None)),
-            stop_signal: Arc::new(RwLock::new(false)),
+            timer_tx: Arc::new(Mutex::new(tx)),
+            timer_rx: Arc::new(Mutex::new(rx)),
             created_at: Arc::new(RwLock::new(Utc::now())),
         }
     }
@@ -102,33 +110,8 @@ impl GameInstance {
         }
 
         self.init_all_cards().await?;
-        self.start_timer().await?;
 
-        let timer = self.timer.read().await;
-        let timer_ref = timer.as_ref().unwrap();
-        let timer_clone = timer_ref.clone();
-        let stop_signal = self.stop_signal.clone();
-
-        tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_millis(900));
-            
-            loop {
-                tokio::select! {
-                    _ = interval.tick() => {
-                        let timer = timer_clone.clone();
-                        if timer.expired().await {
-                            callback();
-                            break;
-                        }
-                    }
-                    stop = async { *stop_signal.read().await } => {
-                        if stop {
-                            break;
-                        }
-                    }
-                }
-            }
-        });
+        self.start_timer(callback);
 
         let mut turn_index = self.turn_index.write().await;
         *turn_index = 0;
@@ -183,16 +166,34 @@ impl GameInstance {
         Ok(())
     }
 
-    async fn start_timer(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let timer = Timer::with_duration(Duration::from_millis(TIMER_DURATION));
-        let mut timer_guard = self.timer.write().await;
-        *timer_guard = Some(timer);
-        Ok(())
+    pub fn start_timer(&self, callback: impl FnOnce() + Send + 'static) {
+        let mut timer = Timer::new(Duration::from_millis(TIMER_DURATION));
+        let self_clone = self.clone();
+        
+        tokio::spawn(async move {
+            let mut timer_rx = self_clone.timer_rx.as_ref().lock().await;
+            loop {
+                tokio::select! {
+                    _ = async { timer.wait_until_expired().await } => {
+                        println!("Timer expired!");
+                        callback();
+                        break;
+                    }
+                    Some(cmd) = timer_rx.recv() => {
+                        trace!("Received timer command:");
+                        match cmd {
+                            TimerCommand::Reset => timer.reset(),
+                            TimerCommand::Stop => break,
+                        }
+                    }
+                }
+            }
+        });
     }
 
     pub async fn stop_timer(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let mut stop = self.stop_signal.write().await;
-        *stop = true;
+        let timer_tx = self.timer_tx.as_ref().lock().await;
+        timer_tx.send(TimerCommand::Stop).await?;
         Ok(())
     }
 
@@ -332,13 +333,8 @@ impl GameInstance {
 
                 self.set_turn_moves(0).await;
 
-                let mut timer_guard = self.timer.write().await;
-                if let Some(timer) = &mut *timer_guard {
-                    trace!("resetting timer");
-                    timer.reset().await;
-                    trace!("timer reset");
-                }
-                drop(timer_guard);
+                let timer_tx = self.timer_tx.as_ref().lock().await;
+                let _ = timer_tx.send(TimerCommand::Reset).await;
 
                 true
             }
@@ -380,11 +376,8 @@ impl GameInstance {
         self.set_turn_moves(0).await;
 
         {
-            if let Ok(mut timer_guard) = self.timer.try_write() {
-                if let Some(timer) = &mut *timer_guard {
-                    timer.reset().await;
-                }
-            }
+            let timer_tx = self.timer_tx.as_ref().lock().await;
+            let _ = timer_tx.send(TimerCommand::Reset).await;
         }
 
         Ok(())
