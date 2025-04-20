@@ -1,14 +1,16 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { TableCardDrop } from "./drop";
 import { observer } from "mobx-react-lite";
 import styles from "./table.module.scss";
 import { useStore } from "@stores/stores";
 import { Deck } from "./deck";
 import useMeasure from "react-use-measure";
+import { FloatingText } from "./floatingtext";
 
 const Table = observer(() => {
   const [ref, bounds] = useMeasure();
   const store = useStore();
+  const { floatingTextStore } = store;
   const isMyTurn = store.gameInstance.turn.isMyTurn;
 
   React.useEffect(() => {
@@ -36,6 +38,12 @@ const Table = observer(() => {
           </div>
           <div className={styles.gameContent}>
             <Deck />
+            {floatingTextStore.show && (
+                    <FloatingText 
+                        text={floatingTextStore.text} 
+                        onFinish={() => floatingTextStore.hideText()} 
+                    />
+                )}
             <TableCardDrop />
             
             <div id={styles.buttons}>

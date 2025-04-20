@@ -62,6 +62,10 @@ impl Deck {
         }
         cards
     }
+
+    pub fn clear(&mut self) {
+        self.cards.clear();
+    }
 }
 
 #[cfg(test)]

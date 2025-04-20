@@ -2,6 +2,18 @@ syntax = "proto3";
 
 package lobby;
 
+enum LobbyQueueAction {
+  START = 0;
+  WAIT = 1;
+}
+
+enum GameType {
+  TWO_PLAYER = 0;
+  THREE_PLAYER = 1;
+  FOUR_PLAYER = 2;
+  FIVE_PLAYER = 3;
+}
+
 message LobbyPlayer {
   string player_uid = 1;
   string name = 2;
@@ -13,15 +25,10 @@ message LobbyStatistics {
   uint32 game_count = 2;
 }
 
-enum LobbyQueueAction {
-  START = 0;
-  WAIT = 1;
-}
-
 message LobbyQueueRequest {
   LobbyPlayer player = 1;
   bool leave = 2;
-  uint32 max_players = 3;
+  GameType game_type = 3;
 }
 
 message LobbyQueueResponse {
@@ -33,3 +40,5 @@ message PublicLobbyPlayer {
   string public_uid = 1;
   string name = 2;
 }
+
+

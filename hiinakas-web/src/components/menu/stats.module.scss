@@ -1,0 +1,118 @@
+@import "../../mixin.scss";
+
+:root {
+  --white: #ffffff;
+  --transparent-white: rgba(255, 255, 255, 0.1);
+  --transparent-white-hover: rgba(255, 255, 255, 0.15);
+  --transparent-border: rgba(255, 255, 255, 0.2);
+}
+
+/* Main container */
+.statsContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.statsWrapper {
+  flex: 0.5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+
+.statsContent {
+  width: 100%;
+  max-width: 500px;
+}
+
+/* Game title */
+.gameTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.1em;
+}
+
+.gameSubtitle {
+  color: var(--white);
+  font-size: 1rem;
+}
+
+/* Stats card */
+.statsCard {
+  background-color: var(--transparent-white);
+  backdrop-filter: blur(8px);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.cardHeader {
+  padding: 1rem 1.5rem 0.5rem;
+}
+
+.cardTitle {
+  color: var(--white);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.cardContent {
+  padding: 0 1.5rem 1.5rem;
+}
+
+/* Table styles */
+.statsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.statsTable th,
+.statsTable td {
+  padding: 0.5rem;
+  color: var(--white);
+}
+
+.statsTable th {
+  text-align: left;
+  font-weight: 500;
+  border-bottom: 1px solid var(--transparent-border);
+}
+
+.statsTable th:nth-child(2),
+.statsTable th:nth-child(3) {
+  text-align: center;
+}
+
+.statsTable td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 77px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playerName {
+  font-weight: 500;
+}
+
+.playerWins,
+.playerLosses {
+  text-align: center;
+}
+
+.statsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.statsTable tr:hover {
+  background-color: var(--transparent-white-hover);
+}
+
+.backButton {
+  @include menu-button;
+}

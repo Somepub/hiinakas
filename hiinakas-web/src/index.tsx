@@ -1,4 +1,3 @@
-//import "preact/debug";
 import React from "react";
 import { StoreProvider } from "@stores/stores";
 import { MainView } from "@views/mainview";

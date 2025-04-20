@@ -95,11 +95,10 @@ const Card = observer((cardT: CardProps) => {
         style={{...inComingStyle }}
         className={styles.card}
       >
-        <img 
-          src={imgPath.replace('url(', '').replace(')', '')}
+        <div 
+          style={{ backgroundImage: imgPath }}
           className={styles.cardImage}
-          loading="lazy"
-        />
+        ></div>
       </animated.div>
     );
   }
@@ -114,11 +113,10 @@ const Card = observer((cardT: CardProps) => {
       }}
       className={styles.card}
     >
-      <img 
-        src={imgPath.replace('url(', '').replace(')', '')}
+      <div 
+        style={{ backgroundImage: imgPath }}
         className={styles.cardImage}
-        loading="lazy"
-      />
+      ></div>
     </animated.div>
   );
 });

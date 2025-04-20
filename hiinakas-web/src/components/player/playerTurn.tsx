@@ -7,7 +7,7 @@ const PlayerTurn = observer(() => {
   const store = useStore();
 
   return <div id={styles.playerTurn}>
-        Current turn: {store.gameInstance?.turn?.isMyTurn ? "You" : store.gameInstance?.opponent?.name} 
+        Current turn: {store.gameInstance?.turn?.isMyTurn ? "You" : store.gameInstance?.turn?.currentTurnName}
     </div>;
 });
 

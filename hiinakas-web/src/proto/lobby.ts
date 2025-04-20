@@ -42,6 +42,51 @@ export function lobbyQueueActionToJSON(object: LobbyQueueAction): string {
   }
 }
 
+export enum GameType {
+  TWO_PLAYER = 0,
+  THREE_PLAYER = 1,
+  FOUR_PLAYER = 2,
+  FIVE_PLAYER = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function gameTypeFromJSON(object: any): GameType {
+  switch (object) {
+    case 0:
+    case "TWO_PLAYER":
+      return GameType.TWO_PLAYER;
+    case 1:
+    case "THREE_PLAYER":
+      return GameType.THREE_PLAYER;
+    case 2:
+    case "FOUR_PLAYER":
+      return GameType.FOUR_PLAYER;
+    case 3:
+    case "FIVE_PLAYER":
+      return GameType.FIVE_PLAYER;
+    case -1:
+    case "UNRECOGNIZED":
+    default:
+      return GameType.UNRECOGNIZED;
+  }
+}
+
+export function gameTypeToJSON(object: GameType): string {
+  switch (object) {
+    case GameType.TWO_PLAYER:
+      return "TWO_PLAYER";
+    case GameType.THREE_PLAYER:
+      return "THREE_PLAYER";
+    case GameType.FOUR_PLAYER:
+      return "FOUR_PLAYER";
+    case GameType.FIVE_PLAYER:
+      return "FIVE_PLAYER";
+    case GameType.UNRECOGNIZED:
+    default:
+      return "UNRECOGNIZED";
+  }
+}
+
 export interface LobbyPlayer {
   playerUid: string;
   name: string;
@@ -56,7 +101,7 @@ export interface LobbyStatistics {
 export interface LobbyQueueRequest {
   player: LobbyPlayer | undefined;
   leave: boolean;
-  maxPlayers: number;
+  gameType: GameType;
 }
 
 export interface LobbyQueueResponse {
@@ -238,7 +283,7 @@ export const LobbyStatistics: MessageFns<LobbyStatistics> = {
 };
 
 function createBaseLobbyQueueRequest(): LobbyQueueRequest {
-  return { player: undefined, leave: false, maxPlayers: 0 };
+  return { player: undefined, leave: false, gameType: 0 };
 }
 
 export const LobbyQueueRequest: MessageFns<LobbyQueueRequest> = {
@@ -249,8 +294,8 @@ export const LobbyQueueRequest: MessageFns<LobbyQueueRequest> = {
     if (message.leave !== false) {
       writer.uint32(16).bool(message.leave);
     }
-    if (message.maxPlayers !== 0) {
-      writer.uint32(24).uint32(message.maxPlayers);
+    if (message.gameType !== 0) {
+      writer.uint32(24).int32(message.gameType);
     }
     return writer;
   },
@@ -283,7 +328,7 @@ export const LobbyQueueRequest: MessageFns<LobbyQueueRequest> = {
             break;
           }
 
-          message.maxPlayers = reader.uint32();
+          message.gameType = reader.int32() as any;
           continue;
         }
       }
@@ -299,7 +344,7 @@ export const LobbyQueueRequest: MessageFns<LobbyQueueRequest> = {
     return {
       player: isSet(object.player) ? LobbyPlayer.fromJSON(object.player) : undefined,
       leave: isSet(object.leave) ? globalThis.Boolean(object.leave) : false,
-      maxPlayers: isSet(object.maxPlayers) ? globalThis.Number(object.maxPlayers) : 0,
+      gameType: isSet(object.gameType) ? gameTypeFromJSON(object.gameType) : 0,
     };
   },
 
@@ -311,8 +356,8 @@ export const LobbyQueueRequest: MessageFns<LobbyQueueRequest> = {
     if (message.leave !== false) {
       obj.leave = message.leave;
     }
-    if (message.maxPlayers !== 0) {
-      obj.maxPlayers = Math.round(message.maxPlayers);
+    if (message.gameType !== 0) {
+      obj.gameType = gameTypeToJSON(message.gameType);
     }
     return obj;
   },
@@ -326,7 +371,7 @@ export const LobbyQueueRequest: MessageFns<LobbyQueueRequest> = {
       ? LobbyPlayer.fromPartial(object.player)
       : undefined;
     message.leave = object.leave ?? false;
-    message.maxPlayers = object.maxPlayers ?? 0;
+    message.gameType = object.gameType ?? 0;
     return message;
   },
 };

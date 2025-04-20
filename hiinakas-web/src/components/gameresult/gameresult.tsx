@@ -6,12 +6,15 @@ import { GameInstanceAction } from "@proto/game";
 
 export const GameResult = observer(() => {
   const { gameInstance } = useStore();
-  const isWinner = gameInstance.turn.isWinner;
+  const isWinner = gameInstance.turn?.isWinner;
+  const message = gameInstance.turn?.turnMessage?.message;
+  const winnerName = message?.split(":")[1];
+
   return (
     <div>
       {gameInstance.turn.action === GameInstanceAction.WIN && (
         <div style={{backgroundColor: isWinner ? "#457346" : "#953240"}} id={styles.gameResult}>
-          <div id={styles.gameResultText}>You { isWinner ? "won" : "lost"} the game!</div>
+          <div id={styles.gameResultText}>{`You ${isWinner ? "won" : "lost"} the game ${!isWinner ? `, winner is "${winnerName}"` : "."}`}</div>
           <div  onClick={() => {
               gameInstance.setGameReady(false);
               gameInstance.turn.setWinner(false, gameInstance);

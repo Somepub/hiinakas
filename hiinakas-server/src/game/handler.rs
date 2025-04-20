@@ -1,28 +1,30 @@
 use prost::Message;
-use tracing::{ debug, error };
+use tracing::{ debug, error, info, trace };
 use std::sync::Arc;
-use socketioxide::SocketIo;
 
-use crate::lobby::lobby::Lobby;
+use crate::lobby::lobby::{GameResult, Lobby};
 
+use crate::protos::card::Effect;
 use crate::protos::game::{
     GameInstanceAction, GameInstanceMessage, GameInstanceMessageAction, GameTurnFeedback, GameTurnRequest, GameTurnResponse
 };
 use crate::protos::lobby::LobbyStatistics;
+use crate::protos::ws::EventType;
+use crate::server::ws_server::WebSocketServer;
 
 use super::game_instance::GameInstance;
 
 #[derive(Debug, Clone)]
 pub struct GameHandler {
     lobby: Arc<Lobby>,
-    io: SocketIo,
+    ws_server: Arc<WebSocketServer>,
 }
 
 impl GameHandler {
-    pub fn new(lobby: Arc<Lobby>, io: SocketIo) -> Self {
+    pub fn new(lobby: Arc<Lobby>, ws_server: Arc<WebSocketServer>) -> Self {
         Self {
             lobby,
-            io,
+            ws_server,
         }
     }
 
@@ -42,11 +44,12 @@ impl GameHandler {
                     Some(p) => p,
                     None => return Ok(()),
                 };
-                //debug!("Game instance found: {:?}", game.get_uid());
+                trace!("Game instance found: {:?}", game.get_uid());
                 let player_uid = player.player_uid.clone();
                 match game.get_players().await.iter().find(|p| p.get_uid() == player_uid) {
                     Some(player) => {
                         if !game.is_my_turn(&player_uid).await {
+                            error!("It's not your turn: {:?}", player_uid);
                             let feedback = GameTurnFeedback {
                                 action: request.action,
                                 message: Some(GameInstanceMessage { 
@@ -100,9 +103,19 @@ impl GameHandler {
         }
 
         let game_instance_clone = game.clone();
+        let mut player = game.get_current_player().await.unwrap();
+        trace!("Playing card: {:?}, Player hand is: {:?}", msg.card_id, player.get_hand_cards());
+        let card_rank = match player.get_card(&msg.card_id) {
+            Some(card) => card.to_number(),
+            None => {
+                error!("CARD NOT FOUND FROM HAND??? THIS IS A LIKELY A BUG, BAD BAD BAD! -> Card not found: {:?}", msg.card_id);
+                return;
+            },
+        };
 
-        if !game.play_card(msg.card_id.to_string()).await {
-            error!("Failed to play card: {:?}", msg.card_id);
+        let play_card_feedback = game.play_card(msg.card_id.to_string()).await;
+        if !play_card_feedback.is_played {
+            trace!("Failed to play card: {:?}", msg.card_id);
             let feedback = GameTurnFeedback {
                 action: GameInstanceAction::PlayCard.into(),
                 message: Some(GameInstanceMessage {
@@ -119,17 +132,24 @@ impl GameHandler {
             self.generate_player_game_turn(game, player_uid, feedback).await;
             return;
         }
+        
         let feedback = GameTurnFeedback {
             action: GameInstanceAction::PlayCard.into(),
             message: Some(GameInstanceMessage {
                 r#type: GameInstanceMessageAction::Info.into(),
-                message: "Card played".to_string(),
+                message: format!("Card played:{}:{}", play_card_feedback.effect.as_str_name(), card_rank),
             }),
             has_won: false,
             has_disconnect: false,
         };
+
+        if play_card_feedback.effect == Effect::Destroy {
+            game_instance_clone.draw_cards(&mut player).await;
+        }
+
         let _ = game_instance_clone.look_next_turn().await;
         let _ = self.generate_players_game_turn(game, feedback).await;
+        trace!("Card played: {:?}", msg.card_id);
     }
 
     async fn end_turn(&self, msg: GameTurnRequest, game: Arc<GameInstance>) {
@@ -145,15 +165,15 @@ impl GameHandler {
                 action: GameInstanceAction::Win.into(),
                 message: Some(GameInstanceMessage {
                     r#type: GameInstanceMessageAction::Info.into(),
-                    message: "Game over".to_string(),
+                    message: format!("Game over:{}", msg.player.unwrap().name),
                 }),
                 has_won: true,
                 has_disconnect: false,
             };
             self.generate_players_game_turn(game, feedback).await;
-            debug!("ENDING GAME: {:?}, {:?}", game_instance_uid, player_uid);
-            self.lobby.end_game(&game_instance_uid, &player_uid).await;
+            self.lobby.end_game(&game_instance_uid, &player_uid, GameResult::Default).await;
             let _ = self.send_statistics().await;
+            trace!("Game ended: {:?}", game_instance_uid);
             return; 
         }
 
@@ -185,6 +205,7 @@ impl GameHandler {
                 self.generate_players_game_turn(game, feedback).await;
             }
             false => {
+                error!("Failed to end turn: {:?}", player_uid);
                 let feedback = GameTurnFeedback {
                     action: GameInstanceAction::EndTurn.into(),
                     message: Some(GameInstanceMessage {
@@ -204,12 +225,13 @@ impl GameHandler {
             Some(p) => p.player_uid.clone(),
             None => return,
         };
+        let player_uid_clone = player_uid.clone();
         if game.pickup_turn().await.is_ok() {
             let feedback = GameTurnFeedback {
                 action: GameInstanceAction::PickUp.into(),
                 message: Some(GameInstanceMessage {
                     r#type: GameInstanceMessageAction::Info.into(),
-                    message: "Turn picked up".to_string(),
+                    message: format!("Turn picked up: {}", msg.player.unwrap().name),
                 }),
                 has_won: false,
                 has_disconnect: false,
@@ -227,6 +249,7 @@ impl GameHandler {
             };
             self.generate_player_game_turn(game, player_uid, feedback).await;
         }
+        trace!("Turn picked up: {:?}", player_uid_clone);
     }
 
     async fn generate_players_game_turn(
@@ -234,21 +257,20 @@ impl GameHandler {
         game_instance: Arc<GameInstance>,
         feedback: GameTurnFeedback
     ) {
-        let player_uids: Vec<String> = {
-            let players = game_instance.get_players().await;
-            players
-                .iter()
-                .map(|p| p.get_uid().to_string())
-                .collect()
-        };
-
-        for player_uid in player_uids {
-            let game_turn = game_instance.generate_game_turn(&player_uid, feedback.clone()).await;
+        for player in game_instance.get_players().await {
+            let game_turn = game_instance.generate_game_turn(&player.get_uid().to_string(), feedback.clone()).await;
             let response = GameTurnResponse {
                 uid: game_instance.get_uid().to_string(),
                 game_turn: Some(game_turn),
             };
-            let _ = self.io.to(player_uid).emit("game/turn", vec![response.encode_to_vec()]);
+            match self.ws_server.to(player.get_connection_id().to_string()).emit(EventType::GameTurn, response.encode_to_vec()).await {
+                Ok(_) => {
+                    trace!("Game turn sent to player {:?}", player.get_uid());
+                }
+                Err(_e) => {
+                    error!("Failed to send game turn to player {:?}: {:?}", player.get_uid(), _e);
+                }
+            }
         }
     }
 
@@ -265,7 +287,15 @@ impl GameHandler {
             game_turn: Some(game_turn),
         };
 
-        let _ = self.io.to(player_uid_clone).emit("game/turn", vec![response.encode_to_vec()]);
+        let connection_id = game_instance.get_player_connection_id(&player_uid_clone).await;
+        match self.ws_server.to(connection_id).emit(EventType::GameTurn, response.encode_to_vec()).await {
+            Ok(_) => {
+                trace!("Game turn sent to player {:?}", player_uid_clone);
+            }
+            Err(_e) => {
+                error!("Failed to send game turn to player {:?}: {:?}", player_uid_clone, _e);
+            }
+        }
     }
 
     async fn send_statistics(
@@ -277,7 +307,15 @@ impl GameHandler {
             game_count: self.lobby.get_game_instances().await.len() as u32,
         };
 
-        self.io.emit("lobby/statistics", vec![statistics.encode_to_vec()])?;
+        match self.ws_server.emit(EventType::LobbyStatistics, statistics.encode_to_vec()).await {
+            Ok(_) => {
+                trace!("Statistics sent");
+            }
+            Err(_e) => {
+                error!("Failed to send statistics: {:?}", _e);
+            }
+        }
         Ok(())
     }
+
 }

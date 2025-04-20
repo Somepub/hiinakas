@@ -22,7 +22,6 @@ export const NameInput = observer(() => {
         }
 
         gameInstance.player.setName(name.trim());
-        gameInstance.player.setUid(v4());
         setError("");
     });
 

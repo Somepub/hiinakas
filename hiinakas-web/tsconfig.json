@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
       "allowSyntheticDefaultImports": true,
+      "allowJs": true,
       "emitDecoratorMetadata": true,
       "experimentalDecorators": true,
       "forceConsistentCasingInFileNames": true,
@@ -19,7 +20,8 @@
         "@views/*": ["views/*"],
         "@stores/*" : ["stores/*"],
         "@assets/*": ["assets/*"],
-        "@proto/*": ["proto/*"]
+        "@proto/*": ["proto/*"],
+        "@hooks/*": ["hooks/*"]
       }
     },
     "exclude": [

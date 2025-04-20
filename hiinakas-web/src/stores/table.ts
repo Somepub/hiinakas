@@ -16,4 +16,8 @@ export class Table {
       this.pool.splice(0, this.pool.length, ..._cards);
     }
   }
+
+  clearTable() {
+    this.pool = [];
+  }
 }

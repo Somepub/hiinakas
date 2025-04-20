@@ -1,0 +1,18 @@
+@mixin menu-button {
+    display: grid;
+    justify-content: center;
+    height: 75px;
+    background-color: #252526ed;
+    border-top: 3px solid rgba(146, 148, 144, 0.582);
+    cursor: pointer;
+    min-width: 270px;
+
+    span {
+        display: grid;
+        align-content: center;
+    }
+
+    &:hover {
+        color: #6fd6c5b7;
+    }
+}

@@ -13,4 +13,8 @@ export class Deck {
   setCards(_cards: number) {
     this.pool = _cards;
   }
+
+  clearDeck() {
+    this.pool = 0;
+  }
 }

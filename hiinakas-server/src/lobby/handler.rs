@@ -1,11 +1,9 @@
 use std::sync::Arc;
 use prost::Message;
-use socketioxide::{ extract::SocketRef, SocketIo };
-use tracing::{ debug, error, info };
+use tracing::{ debug, error, info, trace };
 
 use crate::{
-    game::{ game_instance::GameInstance, player::Player },
-    protos::{
+    game::{ game_instance::GameInstance, player::Player }, lobby::lobby::GameResult, protos::{
         game::{
             GameInstanceAction,
             GameInstanceMessage,
@@ -13,8 +11,10 @@ use crate::{
             GameTurnFeedback,
             GameTurnResponse,
         },
-        lobby::{ LobbyQueueAction, LobbyQueueRequest, LobbyQueueResponse, LobbyStatistics },
-    },
+        lobby::{
+            GameType, LobbyQueueAction, LobbyQueueRequest, LobbyQueueResponse, LobbyStatistics
+        }, ws::EventType,
+    }, server::ws_server::WebSocketServer
 };
 
 use super::lobby::Lobby;
@@ -22,30 +22,35 @@ use super::lobby::Lobby;
 #[derive(Debug, Clone)]
 pub struct LobbyHandler {
     lobby: Arc<Lobby>,
-    io: SocketIo,
+    ws_server: Arc<WebSocketServer>,
 }
 
 impl LobbyHandler {
-    pub fn new(lobby: Arc<Lobby>, io: SocketIo) -> Self {
+    pub fn new(lobby: Arc<Lobby>, ws_server: Arc<WebSocketServer>) -> Self {
         Self {
             lobby,
-            io,
+            ws_server,
         }
     }
 
-    pub async fn connect(&self, socket: &SocketRef) -> Result<(), Box<dyn std::error::Error>> {
-        self.lobby.add_socket_user(socket.id.to_string()).await;
-        let _ = self.send_statistics().await;
-        info!("Client connected {:?}", socket.id);
+    pub async fn connect(&self, connection_id: String) -> Result<(), Box<dyn std::error::Error>> {
+        //debug!("Connecting client {:?}", socket.id);
         //debug!("Socket users: {:?}", self.lobby.get_socket_users().await.read().await);
+        self.lobby.add_socket_user(connection_id.clone()).await;
+        let _ = self.send_statistics().await;
+        info!("Client connected {:?}", connection_id);
+        
         Ok(())
     }
 
-    pub async fn disconnect(&self, socket: SocketRef) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn disconnect(&self, connection_id: String) -> Result<(), Box<dyn std::error::Error>> {
+        debug!("Disconnecting client {:?}", connection_id);
         let socket_users = self.lobby.get_socket_users().await;
-        if let Some(user) = socket_users.read().await.get(&socket.id.to_string()) {
+        if let Some(user) = socket_users.read().await.get(&connection_id) {
+            debug!("User {:?} found in socket users", connection_id);
             match user.player.as_ref() {
                 Some(player) => {
+                    debug!("Player {:?} found in socket user", player.player_uid);
                     let game_instances = self.lobby.get_game_instances().await;
                     let player_clone = player.clone();
 
@@ -68,38 +73,38 @@ impl LobbyHandler {
                                     has_won: true,
                                     has_disconnect: true,
                                 };
-                                let _ = self.generate_players_game_turn(
+                                let _ = self.generate_player_game_turn(
                                     game_instance,
+                                    winner.get_uid().to_string(),
                                     feedback
                                 ).await;
 
-                                self.lobby.end_game_disconnection(
+                                self.lobby.end_game(
                                     &game_instance_clone.get_uid().to_string(),
-                                    winner.get_uid()
+                                    winner.get_uid(),
+                                    GameResult::Disconnect
                                 ).await;
                             }
                         }
                     }
 
-                    self.lobby.remove_player_from_queue(&player_clone.player_uid).await;
+                    self.lobby.remove_player_from_all_queues(&player_clone.player_uid).await;
                 }
-                None => {
-                    //error!("Player is none");
-                }
+                None => {}
             }
         }
 
         let socket_users = self.lobby.get_socket_users().await;
-        socket_users.write().await.remove(&socket.id.to_string());
+        socket_users.write().await.remove(&connection_id);
 
         let _ = self.send_statistics().await;
-        info!("Client disconnected {:?}", socket.id);
+        info!("Client disconnected {:?}", connection_id);
         Ok(())
     }
 
     pub async fn handle_lobby_queue(
         &self,
-        socket: &SocketRef,
+        connection_id: String,
         message: LobbyQueueRequest
     ) -> Result<(), Box<dyn std::error::Error>> {
         if message.player.is_none() {
@@ -107,15 +112,18 @@ impl LobbyHandler {
             return Ok(());
         }
 
-        let socket_user = self.lobby.get_socket_user(&socket.id.to_string()).await;
-        //debug!("Socket user: {:?}", socket_user);
+        debug!("Lobby queue event processed for {:?}", connection_id);
+
+        let socket_user = self.lobby.get_socket_user(&connection_id).await;
+        let player_ref = message.player.as_ref();
+        info!("Socket user {:?} with name of : {:?}", connection_id, player_ref.clone().unwrap().name);
 
         if socket_user.is_none() {
-            error!("Socket user is none");
+            error!("Socket user is none, THIS SHOULD NOT HAPPEN! [Unless....] {:?} {:?}", connection_id, message);
             return Ok(());
         }
 
-        let player_uid = match message.player.as_ref() {
+        let player_uid = match player_ref {
             Some(p) => p.player_uid.clone(),
             None => {
                 return Ok(());
@@ -131,66 +139,95 @@ impl LobbyHandler {
             };
             self.lobby.remove_player_from_queue(&player_clone.player_uid).await;
 
-            socket.leave(self.lobby.get_lobby_queue_uid().await)?;
-            socket.leave(player_clone.player_uid)?;
-
-            self.lobby.remove_socket_user(&socket.id.to_string()).await;
-            //debug!("Player left queue");
+            debug!("Player left queue {:?}", player_uid);
             return Ok(());
         }
 
-        //debug!("{:?}", self.lobby.type_id());
+        debug!("Socket {:?}: is trying to join queue =: {:?}", connection_id, message.player.as_ref().unwrap().name);
         let player_clone = match message.player.as_ref() {
             Some(p) => p.clone(),
             None => {
                 return Ok(());
             }
         };
-        // TODO:: Add maxPlayers to queue
-        self.lobby.add_player_to_queue(player_clone).await;
-        socket.join(self.lobby.get_lobby_queue_uid().await)?;
-        socket.join(player_uid)?;
 
-        //info!("Player joined queue {:?}", player_uid_clone);
+        let game_type = match GameType::from_i32(message.game_type) {
+            Some(game_type) => game_type,
+            None => {
+                error!("Invalid game type: {:?}", message.game_type);
+                return Ok(());
+            }
+        };
 
-        //debug!("has_socket_user: {:?}", self.lobby.has_socket_user(&socket.id.to_string()).await);
-        if !self.lobby.has_socket_user(&socket.id.to_string()).await {
+        self.lobby.add_player_to_queue(player_clone, game_type).await;
+
+        trace!("Player joined queue {:?}", player_uid);
+
+        trace!("has_socket_user: {:?}", self.lobby.has_socket_user(&connection_id).await);
+        if !self.lobby.has_socket_user(&connection_id).await {
             let player_clone = match message.player.as_ref() {
                 Some(p) => p.clone(),
                 None => {
-                    error!("Player is none???");
+                    error!("Player is none???, THIS SHOULD NOT HAPPEN!");
                     return Ok(());
                 }
             };
-            self.lobby.set_socket_user_player(&socket.id.to_string(), player_clone).await;
-            //let player_uid_clone = player_uid_clone.clone();
-            //debug!("Socket user set {:?}", player_uid_clone);
+            self.lobby.set_socket_user_player(&connection_id, player_clone).await;
+            trace!("Socket user set {:?}", player_uid);
         }
 
-        //debug!("Queue length: {:?}", self.lobby.get_queue().await.len());
-        if self.lobby.get_queue().await.len() < message.max_players as usize {
-            //debug!("Queue is less than 2");
+        let queue_game_type_max_players = match game_type {
+            GameType::TwoPlayer => 2,
+            GameType::ThreePlayer => 3,
+            GameType::FourPlayer => 4,
+            GameType::FivePlayer => 5,
+        };
+
+        debug!("Queue length: {:?}", self.lobby.get_queue(game_type).await.len());
+        if self.lobby.get_queue(game_type).await.len() < queue_game_type_max_players {
+            debug!("Player {:?}: is waiting for more players ", message.player.as_ref().unwrap().name);
+
             let mut response = LobbyQueueResponse::default();
             response.set_action(LobbyQueueAction::Wait.into());
-            socket.emit("lobby/queue", vec![response.encode_to_vec()])?;
+            match self.ws_server.to(connection_id.clone()).emit(EventType::LobbyQueue, response.encode_to_vec()).await {
+                Ok(_) => {
+                    trace!("Queue response sent");
+                },
+                Err(_e) => {
+                    error!("Failed to send queue response: {:?}", _e);
+                }
+            }
             return Ok(());
         }
 
-        //debug!("Creating game instance");
+        debug!("Player {:?}: Creating game instance", message.player.as_ref().unwrap().name);
         let game_instance = GameInstance::new();
         let game_instance = Arc::new(game_instance);
         let game_uid = game_instance.get_uid().to_string();
         let game_uid_clone = game_uid.clone();
 
-        let queue_players = self.lobby.get_queue().await;
+        let queue_players = self.lobby.get_queue(game_type).await;
         for queue_player in queue_players {
+            let inner_connection_id = match self.lobby.get_connection_uid_by_player_uid(&queue_player.player_uid).await {
+                Some(conn_id) => conn_id,
+                None => {
+                    error!("Could not find connection ID for player {}", queue_player.player_uid);
+                    continue;
+                }
+            };
             game_instance.add_player(
-                Player::new(queue_player.player_uid.clone(), queue_player.name.clone())
+                Player::new(
+                    queue_player.player_uid.clone(),
+                    queue_player.public_uid.clone(),
+                    inner_connection_id.clone(),
+                    queue_player.name.clone()
+                )
             ).await?;
         }
 
         let init_game_uid_clone = game_uid.clone();
         let lobby_clone = self.lobby.clone();
+        let lobby_clone2 = self.lobby.clone();
         let game_instance_clone = game_instance.clone();
         let self_clone = self.clone();
         game_instance.init_instance(
@@ -203,16 +240,18 @@ impl LobbyHandler {
 
                 tokio::spawn(async move {
                     let current_player = game_instance_clone.get_current_player().await;
+                    let next_player = game_instance_clone2.get_next_player().await.clone();
+                    let next_player_clone = game_instance_clone2.get_next_player().await.clone();
                     let current_player_clone = current_player.clone();
                     let player_uid_clone = current_player.unwrap().get_uid().to_string();
                     let feedback = GameTurnFeedback {
                         action: GameInstanceAction::Win.into(),
                         message: Some(GameInstanceMessage {
                             r#type: GameInstanceMessageAction::Info.into(),
-                            message: "Game ended!".to_string(),
+                            message: format!("Game over:{}", next_player_clone.unwrap().get_name()),
                         }),
                         has_won: false,
-                        has_disconnect: false,
+                        has_disconnect: true,
                     };
 
                     handler_clone.generate_player_game_turn(
@@ -222,8 +261,9 @@ impl LobbyHandler {
                     ).await;
                     let player_uid_clone = current_player_clone.unwrap().get_uid().to_string();
 
-                    let next_player = game_instance_clone2.get_next_player().await;
+                    
                     let next_player_uid_clone = next_player.unwrap().get_uid().to_string();
+                    let next_player_uid_clone2 = next_player_uid_clone.clone();
                     let feedback = GameTurnFeedback {
                         action: GameInstanceAction::Win.into(),
                         message: Some(GameInstanceMessage {
@@ -239,32 +279,20 @@ impl LobbyHandler {
                         feedback
                     ).await;
 
-                    debug!("ENDING GAME TIMER: {:?}, {:?}", game_uid_clone, player_uid_clone);
-                    lobby_clone.end_game(&game_uid_clone, &player_uid_clone).await;
+                    trace!("ENDING GAME TIMER: {:?}, {:?}", game_uid_clone, player_uid_clone);
+                    lobby_clone.end_game(&game_uid_clone, &next_player_uid_clone2, GameResult::Timeout).await;
                     let _ = handler_clone.send_statistics().await;
                 });
             })
         ).await?;
-        //debug!("Game instance initialized {:?}", game_instance.get_uid());
+        trace!("Game instance initialized {:?}", game_instance.get_uid());
 
         self.lobby.add_game(game_instance.clone()).await;
-        socket.join(game_uid)?;
-        //debug!("Game instance added to lobby");
+        trace!("Game instance added to lobby");
 
         self.lobby.clear_queue().await;
         let _ = self.send_statistics().await;
-        //debug!("Statistics sent");
-
-        let queue_response = LobbyQueueResponse {
-            game_uid: game_uid_clone.clone(),
-            action: LobbyQueueAction::Start.into(),
-        };
-
-        self.io
-            .within(self.lobby.get_lobby_queue_uid().await)
-            .emit("lobby/queue", vec![queue_response.encode_to_vec()])?;
-
-        //debug!("Queue response sent");
+        trace!("Statistics sent");
 
         let feedback: GameTurnFeedback = GameTurnFeedback {
             action: GameInstanceAction::Init.into(),
@@ -276,15 +304,41 @@ impl LobbyHandler {
             has_disconnect: false,
         };
 
+        let players = game_instance.get_players().await;
+        
         let player_uids: Vec<String> = {
-            let players = game_instance.get_players().await;
             players
                 .iter()
                 .map(|p| p.get_uid().to_string())
                 .collect()
         };
 
-        for player_uid in player_uids {
+        let connection_ids: Vec<String> = {
+            players
+                .iter()
+                .map(|p| p.get_connection_id().to_string())
+                .collect()
+        };
+
+        for connection_id in connection_ids {
+            let queue_response = LobbyQueueResponse {
+                game_uid: game_uid_clone.clone(),
+                action: LobbyQueueAction::Start.into(),
+            };
+    
+            match self.ws_server
+                .to(connection_id)
+                .emit(EventType::LobbyQueue,  queue_response.encode_to_vec()).await {
+                    Ok(_) => {
+                        debug!("Queue response sent");
+                    },
+                    Err(e) => {
+                        error!("Failed to send queue response: {:?}", e);
+                    }
+                }
+        }
+
+        for player_uid in player_uids {        
             let player_uid_clone = player_uid.clone();
             self.lobby.set_socket_user_game_uid(&player_uid_clone, &game_uid_clone).await;
             let game_turn = game_instance.generate_game_turn(&player_uid, feedback.clone()).await;
@@ -292,23 +346,29 @@ impl LobbyHandler {
                 uid: game_instance.get_uid().to_string(),
                 game_turn: Some(game_turn),
             };
-            let _ = self.io.to(player_uid).emit("game/turn", vec![response.encode_to_vec()]);
-            //let _ = lobby_clone.connect_game_to_winner_api(&game_uid_clone, &player_uid_clone).await;
+            let connection_id = game_instance.get_player_connection_id(&player_uid).await;
+            match self.ws_server.to(connection_id).emit(EventType::GameTurn, response.encode_to_vec()).await {
+                Ok(_) => {
+                    debug!("Game turn sent to player ");
+                },
+                Err(e) => {
+                    error!("Failed to send game turn to player {:?}", e);
+                }
+            }
         }
-        //debug!("Game turn feedback generated");
+        trace!("Game turn feedback generated");
 
         self.lobby.set_new_lobby_queue_uid().await;
-        //debug!("New lobby queue uid set");
+        trace!("New lobby queue uid set");
 
-        // TODO: Connect players to game server
-
+        info!("Player {:?}: Created a game and it has started", message.player.as_ref().unwrap().name);
         Ok(())
     }
 
     pub async fn handle_lobby_statistics(&self) -> Result<(), Box<dyn std::error::Error>> {
         let _ = self.send_statistics().await;
         Ok(())
-    }
+    } 
 
     async fn send_statistics(&self) -> Result<(), Box<dyn std::error::Error>> {
         let socket_users = self.lobby.get_socket_users().await;
@@ -317,30 +377,45 @@ impl LobbyHandler {
             game_count: self.lobby.get_game_instances().await.len() as u32,
         };
 
-        self.io.emit("lobby/statistics", vec![statistics.encode_to_vec()])?;
+        match self.ws_server.emit(EventType::LobbyStatistics, statistics.encode_to_vec()).await {
+            Ok(_) => {
+                debug!("Statistics sent");
+            },
+            Err(e) => {
+                error!("Failed to send statistics: {:?}", e);
+            }
+        }
         Ok(())
     }
+
 
     pub async fn generate_players_game_turn(
         &self,
         game_instance: Arc<GameInstance>,
         feedback: GameTurnFeedback
     ) {
-        let player_uids: Vec<String> = {
+        let connection_ids: Vec<String> = {
             let players = game_instance.get_players().await;
             players
                 .iter()
-                .map(|p| p.get_uid().to_string())
+                .map(|p| p.get_connection_id().to_string())
                 .collect()
         };
 
-        for player_uid in player_uids {
-            let game_turn = game_instance.generate_game_turn(&player_uid, feedback.clone()).await;
+        for connection_id in connection_ids {
+            let game_turn = game_instance.generate_game_turn(&connection_id, feedback.clone()).await;
             let response = GameTurnResponse {
                 uid: game_instance.get_uid().to_string(),
                 game_turn: Some(game_turn),
             };
-            let _ = self.io.to(player_uid).emit("game/turn", vec![response.encode_to_vec()]);
+            match self.ws_server.to(connection_id).emit(EventType::GameTurn, response.encode_to_vec()).await {
+                Ok(_) => {
+                    //debug!("Game turn sent to player {:?}", player_uid);
+                },
+                Err(_e) => {
+                    //error!("Failed to send game turn to player {:?}: {:?}", player_uid, _e);
+                }
+            }
         }
     }
 
@@ -355,6 +430,14 @@ impl LobbyHandler {
             uid: game_instance.get_uid().to_string(),
             game_turn: Some(game_turn),
         };
-        let _ = self.io.to(player_uid).emit("game/turn", vec![response.encode_to_vec()]);
+        let connection_id = game_instance.get_player_connection_id(&player_uid).await;
+        match self.ws_server.to(connection_id).emit(EventType::GameTurn,  response.encode_to_vec()).await {
+            Ok(_) => {
+                //debug!("Game turn sent to player {:?}", player_uid);
+            },
+            Err(_e) => {
+                //error!("Failed to send game turn to player {:?}: {:?}", player_uid, _e);
+            }
+        }
     }
 }
