@@ -169,6 +169,10 @@ impl Lobby {
             .to_vec()
     }
 
+    pub fn get_pool(&self) -> Arc<RwLock<SqlitePool>> {
+        self.db_pool.clone()
+    }
+
     pub async fn get_game_instances(&self) -> Vec<Arc<GameInstance>> {
         let games = self.games.read().await;
         games.values().cloned().collect()

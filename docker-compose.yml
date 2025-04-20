@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  curak-server:
+    build: 
+      context: ./curak-server
+    ports:
+      - "5000:5000"
+
+  curak-web:
+    build:
+      context: ./curak-web
+    ports:
+      - "443:443"
+      - "80:80"

@@ -1,6 +1,7 @@
 use prost::Message;
 use tracing::{ debug, error, info, trace };
 use std::sync::Arc;
+use sqlx::Row;
 
 use crate::lobby::lobby::{GameResult, Lobby};
 
@@ -8,7 +9,7 @@ use crate::protos::card::Effect;
 use crate::protos::game::{
     GameInstanceAction, GameInstanceMessage, GameInstanceMessageAction, GameTurnFeedback, GameTurnRequest, GameTurnResponse
 };
-use crate::protos::lobby::LobbyStatistics;
+use crate::protos::lobby::{LobbyStatistics, MatchHistory, PlayerStats};
 use crate::protos::ws::EventType;
 use crate::server::ws_server::WebSocketServer;
 
@@ -302,9 +303,44 @@ impl GameHandler {
         &self,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let socket_users = self.lobby.get_socket_users().await;
+
+        let db_pool = self.lobby.get_pool();
+        let db_pool = db_pool.read().await;
+        let player_stats_records = sqlx
+            ::query("SELECT player_uid, player_name, win_count, loss_count FROM stats ORDER BY win_count DESC LIMIT 10")
+            .fetch_all(&*db_pool).await?;
+
+        let match_history_records = sqlx
+            ::query(
+                "SELECT game_winner_uid, game_winner_name, game_other_players, game_uid, game_duration, game_start_time, game_type FROM matches"
+            )
+            .fetch_all(&*db_pool).await?;
         let statistics = LobbyStatistics {
             player_count: socket_users.read().await.len() as u32,
             game_count: self.lobby.get_game_instances().await.len() as u32,
+            player_stats: player_stats_records
+                .iter()
+                .map(|row| PlayerStats {
+                    uid: row.get::<String, _>("player_uid"),
+                    name: row.get::<String, _>("player_name"),
+                    wins: row.get::<i64, _>("win_count") as u32,
+                    losses: row.get::<i64, _>("loss_count") as u32,
+                })
+                .collect(),
+            match_history: match_history_records
+                .iter()
+                .map(|row| MatchHistory {
+                    game_uid: row.get::<String, _>("game_uid"),
+                    winner_uid: row.get::<String, _>("game_winner_uid"),
+                    winner_name: row.get::<String, _>("game_winner_name"),
+                    duration: row.get::<String, _>("game_duration").parse::<u32>().unwrap(),
+                    game_type: row.get::<i64, _>("game_type") as u32,
+                    other_players: row.get::<String, _>("game_other_players")
+                        .split(',')
+                        .map(|s| s.to_string())
+                        .collect(),
+                })
+                .collect(),
         };
 
         match self.ws_server.emit(EventType::LobbyStatistics, statistics.encode_to_vec()).await {

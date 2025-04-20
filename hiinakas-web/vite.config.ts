@@ -6,7 +6,6 @@ import { compression } from 'vite-plugin-compression2'
 
 export default defineConfig(({ command, mode }) => {
   const isDev = mode === 'development';
-  let isWebcomponent = process.env.WEBCOMPONENT || false;
 
   return {
     plugins: [
@@ -18,14 +17,6 @@ export default defineConfig(({ command, mode }) => {
     server: {
       host: '0.0.0.0',
       port: 8087,
-      proxy: {
-        '/socket.io': {
-          target: 'http://localhost:4000',
-          ws: true,
-          secure: true,
-          changeOrigin: true
-        }
-      }
     },
     css: {
       modules: {
