@@ -67,7 +67,7 @@ const MenuContentTop10 = observer(() => {
   const { menu } = useStore();
   return (
     <div className={styles.menuButton} onClick={() => menu.setIsOnTop10(true)}>
-      <span>TOP 10</span>
+      <span>LEADERBOARD</span>
     </div>
   );
 });
@@ -119,8 +119,8 @@ export const MainMenu = observer(() => {
     >
       <MenuLogo />
       {!gameInstance.player.name && <NameInput />}
-      {!menu.isWaiting && <MenuContent />}
-      {menu.isWaiting && <MenuContentWaiting />}
+      {!menu.isWaiting && !menu.isOnTop10 && <MenuContent />}
+      {menu.isWaiting && !menu.isOnTop10 && <MenuContentWaiting />}
       {menu.isOnTop10 && <Stats />}
     </div>
   );
