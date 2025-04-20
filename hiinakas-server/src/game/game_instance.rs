@@ -1,26 +1,22 @@
-use std::{sync::Arc, time::Duration};
 use crate::utils::timer::Timer;
-use chrono::{ DateTime, Utc };
+use chrono::{DateTime, Utc};
 use smallvec::SmallVec;
+use std::{sync::Arc, time::Duration};
 use tokio::sync::RwLock;
-use tracing::{ debug, error, info, trace };
+use tracing::{debug, error, info, trace};
 use uuid::Uuid;
 
 use crate::protos::{
-    card::{ Effect, SmallCard },
+    card::{Effect, SmallCard},
     game::{
-        GameTurn,
-        GameTurnFeedback,
-        GameTurnPlayer,
-        GameTurnStatus,
-        OpponentPlayerStatus,
+        GameTurn, GameTurnFeedback, GameTurnPlayer, GameTurnStatus, OpponentPlayerStatus,
         PlayerStatus,
     },
 };
 
-use super::{ deck::Deck, player::Player, table::Table };
+use super::{deck::Deck, player::Player, table::Table};
 
-const MAX_PLAYERS: usize = 2;
+const MAX_PLAYERS: usize = 5;
 const TIMER_DURATION: u64 = 120070;
 
 #[derive(Debug, Clone)]
@@ -96,7 +92,10 @@ impl GameInstance {
         }
     }
 
-    pub async fn init_instance(&self, callback: Box<dyn Fn() + Send + Sync>) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn init_instance(
+        &self,
+        callback: Box<dyn Fn() + Send + Sync>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut init = self.init.write().await;
         if *init {
             return Ok(());
@@ -117,10 +116,10 @@ impl GameInstance {
                 }
 
                 let timer = timer_clone.clone();
-                
+
                 if timer.expired().await {
-                   callback();
-                   break;
+                    callback();
+                    break;
                 }
             }
         });
@@ -140,7 +139,11 @@ impl GameInstance {
             // Deal hand cards (3)
             for _ in 0..3 {
                 if let Some(card) = deck.draw_card() {
-                    trace!("Dealing hand card: {:?} to player: {:?}", card, player.get_name());
+                    trace!(
+                        "Dealing hand card: {:?} to player: {:?}",
+                        card,
+                        player.get_name()
+                    );
                     player.add_hand_card(card);
                 }
             }
@@ -148,7 +151,11 @@ impl GameInstance {
             // Deal floor cards (3)
             for _ in 0..3 {
                 if let Some(card) = deck.draw_card() {
-                    trace!("Dealing floor card: {:?} to player: {:?}", card, player.get_name());
+                    trace!(
+                        "Dealing floor card: {:?} to player: {:?}",
+                        card,
+                        player.get_name()
+                    );
                     player.add_floor_card(card);
                 }
             }
@@ -156,7 +163,11 @@ impl GameInstance {
             // Deal blind cards (3)
             for _ in 0..3 {
                 if let Some(card) = deck.draw_card() {
-                    trace!("Dealing blind card: {:?} to player: {:?}", card, player.get_name());
+                    trace!(
+                        "Dealing blind card: {:?} to player: {:?}",
+                        card,
+                        player.get_name()
+                    );
                     player.add_blind_card(card);
                 }
             }
@@ -204,7 +215,7 @@ impl GameInstance {
 
     pub async fn play_card(&self, card_uid: String) -> PlayCardFeedback {
         let turn_index = *self.turn_index.read().await;
-        
+
         let mut players = self.players.write().await;
 
         let player = match players.get_mut(turn_index) {
@@ -221,7 +232,7 @@ impl GameInstance {
         let card = match player.get_card(&card_uid) {
             Some(c) => c,
             None => {
-                trace!("Card not found, returning no effect");  
+                trace!("Card not found, returning no effect");
                 return PlayCardFeedback {
                     is_played: false,
                     effect: Effect::NoEffect,
@@ -230,7 +241,10 @@ impl GameInstance {
         };
 
         let mut table = self.table.write().await;
-        if !table.is_card_playable(&card, self.get_turn_moves().await).await {
+        if !table
+            .is_card_playable(&card, self.get_turn_moves().await)
+            .await
+        {
             trace!("Card is not playable");
             return PlayCardFeedback {
                 is_played: false,
@@ -248,18 +262,17 @@ impl GameInstance {
                 self.set_turn_moves(0).await;
             }
         }
-        
+
         // If 4 cards
         let table_cards = table.get_cards();
         if table_cards.len() >= 3 {
             let last_three = &table_cards[table_cards.len().saturating_sub(3)..];
-            if last_three.len() == 3 && 
-               last_three.iter().all(|c| c.get_rank() == card.get_rank()) {
+            if last_three.len() == 3 && last_three.iter().all(|c| c.get_rank() == card.get_rank()) {
                 trace!("4 cards in a row, destroying table");
                 table.clear();
                 self.set_turn_moves(0).await;
                 return PlayCardFeedback {
-                    is_played: true,    
+                    is_played: true,
                     effect: Effect::Destroy,
                 };
             }
@@ -298,9 +311,9 @@ impl GameInstance {
                 drop(players);
 
                 let _ = self.look_next_turn().await;
-        
+
                 self.next_turn().await;
-        
+
                 self.set_turn_moves(0).await;
 
                 let mut timer_guard = self.timer.write().await;
@@ -323,7 +336,7 @@ impl GameInstance {
     pub async fn pickup_turn(&self) -> Result<(), Box<dyn std::error::Error>> {
         trace!("Picking up turn");
         let turn_index = *self.turn_index.read().await;
-        
+
         let table_cards = {
             let table = self.table.read().await;
             table.get_cards().clone()
@@ -372,13 +385,13 @@ impl GameInstance {
     pub async fn draw_cards(&self, player: &mut Player) {
         const TARGET_CARDS: usize = 3;
         let current_cards = player.get_hand_cards().len();
-        
+
         if current_cards >= TARGET_CARDS {
             return;
         }
-    
+
         let cards_to_draw = TARGET_CARDS - current_cards;
-        
+
         for _ in 0..cards_to_draw {
             self.draw_card(player).await;
         }
@@ -424,15 +437,14 @@ impl GameInstance {
     pub async fn generate_game_turn(
         &self,
         player_uid: &str,
-        feedback: GameTurnFeedback
+        feedback: GameTurnFeedback,
     ) -> GameTurn {
-        let player_name = self.players.read().await[*self.turn_index.read().await].get_name().to_string();
+        let player_name = self.players.read().await[*self.turn_index.read().await]
+            .get_name()
+            .to_string();
         debug!("Generating game turn for player: {:?}", player_name);
         let players = self.players.read().await;
-        let curr_player = match players
-            .iter()
-            .find(|p| p.get_uid() == player_uid)
-        {
+        let curr_player = match players.iter().find(|p| p.get_uid() == player_uid) {
             Some(p) => p,
             None => return GameTurn::default(),
         };
@@ -452,7 +464,10 @@ impl GameInstance {
                 })
                 .collect(),
             deck: deck.get_cards().len() as u32,
-            is_winner: feedback_clone.has_won && self.is_win_condition(player_uid, feedback_clone.has_disconnect).await,
+            is_winner: feedback_clone.has_won
+                && self
+                    .is_win_condition(player_uid, feedback_clone.has_disconnect)
+                    .await,
         };
 
         game_turn
@@ -461,10 +476,12 @@ impl GameInstance {
     async fn generate_game_turn_player(
         &self,
         feedback: GameTurnFeedback,
-        curr_player: &Player
+        curr_player: &Player,
     ) -> GameTurnPlayer {
         GameTurnPlayer {
-            name: self.players.read().await[*self.turn_index.read().await].get_name().to_string(),
+            name: self.players.read().await[*self.turn_index.read().await]
+                .get_name()
+                .to_string(),
             is_my_turn: self.is_my_turn(curr_player.get_uid()).await,
             action: feedback.action,
             message: feedback.message,
@@ -473,10 +490,7 @@ impl GameInstance {
 
     async fn generate_game_turn_status(&self, player_uid: &str) -> GameTurnStatus {
         let players = self.players.read().await;
-        let player = match players
-            .iter()
-            .find(|p| p.get_uid() == player_uid)
-        {
+        let player = match players.iter().find(|p| p.get_uid() == player_uid) {
             Some(p) => p,
             None => return GameTurnStatus::default(),
         };
@@ -545,10 +559,7 @@ impl GameInstance {
     pub async fn is_my_turn(&self, player_uid: &str) -> bool {
         let turn_index = *self.turn_index.read().await;
         let players = self.players.read().await;
-        let player = match players
-            .iter()
-            .find(|p| p.get_uid() == player_uid)
-        {
+        let player = match players.iter().find(|p| p.get_uid() == player_uid) {
             Some(p) => p,
             None => return false,
         };
@@ -557,19 +568,16 @@ impl GameInstance {
 
     pub async fn is_win_condition(&self, player_uid: &str, has_disconnect: bool) -> bool {
         let players = self.players.read().await;
-        let player = match players
-            .iter()
-            .find(|p| p.get_uid() == player_uid)
-        {
+        let player = match players.iter().find(|p| p.get_uid() == player_uid) {
             Some(p) => p,
             None => return false,
         };
         if has_disconnect {
             return true;
         }
-        player.is_hand_cards_empty() &&
-            player.is_floor_cards_empty() &&
-            player.is_blind_cards_empty()
+        player.is_hand_cards_empty()
+            && player.is_floor_cards_empty()
+            && player.is_blind_cards_empty()
     }
 
     pub async fn get_start_time(&self) -> DateTime<Utc> {
@@ -591,7 +599,12 @@ mod tests {
     #[tokio::test]
     async fn test_add_player() {
         let instance = GameInstance::new();
-        let player = Player::new("test_uid".to_string(), "test_public_uid".to_string(), "Test Player".to_string(), "Test Player".to_string());
+        let player = Player::new(
+            "test_uid".to_string(),
+            "test_public_uid".to_string(),
+            "Test Player".to_string(),
+            "Test Player".to_string(),
+        );
 
         instance.add_player(player).await.unwrap();
 
@@ -602,8 +615,18 @@ mod tests {
     #[tokio::test]
     async fn test_game_initialization() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string(), "Player 2".to_string());
+        let player1 = Player::new(
+            "p1".to_string(),
+            "public_p1".to_string(),
+            "Player 1".to_string(),
+            "Player 1".to_string(),
+        );
+        let player2 = Player::new(
+            "p2".to_string(),
+            "public_p2".to_string(),
+            "Player 2".to_string(),
+            "Player 2".to_string(),
+        );
 
         instance.add_player(player1).await.unwrap();
         instance.add_player(player2).await.unwrap();
@@ -623,14 +646,23 @@ mod tests {
     #[tokio::test]
     async fn test_play_card_success() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string(), "Player 2".to_string());
+        let player1 = Player::new(
+            "p1".to_string(),
+            "public_p1".to_string(),
+            "Player 1".to_string(),
+            "Player 1".to_string(),
+        );
+        let player2 = Player::new(
+            "p2".to_string(),
+            "public_p2".to_string(),
+            "Player 2".to_string(),
+            "Player 2".to_string(),
+        );
         let player1_clone = player1.clone();
 
         instance.add_player(player1).await.unwrap();
         instance.add_player(player2).await.unwrap();
 
-        
         instance.init_instance(Box::new(|| {})).await.unwrap();
         assert!(instance.is_initialized().await);
         let hand_cards = player1_clone.get_hand_cards();
@@ -639,7 +671,7 @@ mod tests {
             None => {
                 error!("PANIC! No card found");
                 return;
-            },
+            }
         };
 
         instance.play_card(card.get_uid().to_string()).await;
@@ -651,15 +683,35 @@ mod tests {
     #[tokio::test]
     async fn test_play_card_failure() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string(), "Player 2".to_string());
+        let player1 = Player::new(
+            "p1".to_string(),
+            "public_p1".to_string(),
+            "Player 1".to_string(),
+            "Player 1".to_string(),
+        );
+        let player2 = Player::new(
+            "p2".to_string(),
+            "public_p2".to_string(),
+            "Player 2".to_string(),
+            "Player 2".to_string(),
+        );
     }
 
     #[tokio::test]
     async fn test_pickup_turn() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string(), "Player 2".to_string());
+        let player1 = Player::new(
+            "p1".to_string(),
+            "public_p1".to_string(),
+            "Player 1".to_string(),
+            "Player 1".to_string(),
+        );
+        let player2 = Player::new(
+            "p2".to_string(),
+            "public_p2".to_string(),
+            "Player 2".to_string(),
+            "Player 2".to_string(),
+        );
 
         instance.add_player(player1).await.unwrap();
         instance.add_player(player2).await.unwrap();
@@ -667,7 +719,5 @@ mod tests {
         instance.init_instance(Box::new(|| {})).await.unwrap();
 
         assert!(instance.is_initialized().await);
-
-
     }
 }

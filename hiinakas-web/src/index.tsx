@@ -1,6 +1,6 @@
 import React from "react";
 import { StoreProvider } from "@stores/stores";
-import { MainView } from "@views/mainview";
+import { MainView, DevView } from "@views/mainview";
 import "./theme.scss";
 import { createRoot } from "react-dom/client";
 

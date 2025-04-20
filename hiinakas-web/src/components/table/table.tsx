@@ -6,6 +6,8 @@ import { useStore } from "@stores/stores";
 import { Deck } from "./deck";
 import useMeasure from "react-use-measure";
 import { FloatingText } from "./floatingtext";
+import PlayerTurn from "@components/player/playerTurn";
+import { Timer } from "@components/timer/timer";
 
 const Table = observer(() => {
   const [ref, bounds] = useMeasure();
@@ -22,6 +24,8 @@ const Table = observer(() => {
   if (store.gameInstance.gameReady) {
     return (
       <div id={styles.tableWrapper}>
+        <Timer />
+        <PlayerTurn />
         <div
           ref={ref}
           style={{
@@ -39,13 +43,13 @@ const Table = observer(() => {
           <div className={styles.gameContent}>
             <Deck />
             {floatingTextStore.show && (
-                    <FloatingText 
-                        text={floatingTextStore.text} 
-                        onFinish={() => floatingTextStore.hideText()} 
-                    />
-                )}
+              <FloatingText
+                text={floatingTextStore.text}
+                onFinish={() => floatingTextStore.hideText()}
+              />
+            )}
             <TableCardDrop />
-            
+
             <div id={styles.buttons}>
               <div
                 onClick={() => store.gameInstance.endTurn()}
@@ -53,8 +57,8 @@ const Table = observer(() => {
               >
                 <span>End Turn</span>
               </div>
-              <div 
-                onClick={() => store.gameInstance.pickUp()} 
+              <div
+                onClick={() => store.gameInstance.pickUp()}
                 className={`${styles.button} ${styles.pickUp}`}
               >
                 <span>Pick up</span>

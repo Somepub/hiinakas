@@ -1,14 +1,17 @@
 use std::sync::Arc;
 
 use hashbrown::HashMap;
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use sqlx::SqlitePool;
 use tokio::sync::RwLock;
-use smallvec::SmallVec;
-use tracing::{ debug, error, info, trace };
+use tracing::{debug, error, info, trace};
 use uuid::Uuid;
 
-use crate::{ game::game_instance::GameInstance, protos::lobby::{GameType, LobbyPlayer} };
+use crate::{
+    game::game_instance::GameInstance,
+    protos::lobby::{GameType, LobbyPlayer},
+};
 
 #[derive(Debug, Clone)]
 pub struct SocketUser {
@@ -71,7 +74,7 @@ pub struct GameWinnerRequest {
 
 #[derive(Debug, Clone)]
 pub struct Lobby {
-    queue: Arc<RwLock<HashMap<GameType, SmallVec<[LobbyPlayer; GameType::FivePlayer as usize]>>>>,
+    queue: Arc<RwLock<HashMap<GameType, SmallVec<[LobbyPlayer; 5]>>>>,
     games: Arc<RwLock<HashMap<String, Arc<GameInstance>>>>,
     socket_users: Arc<RwLock<HashMap<String, SocketUser>>>,
     lobby_queue_uid: Arc<RwLock<String>>,
@@ -98,7 +101,10 @@ impl Lobby {
     pub async fn add_player_to_queue(&self, player: LobbyPlayer, game_type: GameType) {
         let mut queue = self.queue.write().await;
         let queue_entry = queue.entry(game_type).or_insert_with(|| SmallVec::new());
-        if !queue_entry.iter().any(|p| p.player_uid == player.player_uid) {
+        if !queue_entry
+            .iter()
+            .any(|p| p.player_uid == player.player_uid)
+        {
             queue_entry.push(player);
         }
     }
@@ -110,16 +116,20 @@ impl Lobby {
 
     pub async fn add_socket_user(&self, socket_uid: String) {
         let mut socket_users = self.socket_users.write().await;
-        socket_users.insert(socket_uid, SocketUser {
-            game_uid: None,
-            player: None,
-        });
+        socket_users.insert(
+            socket_uid,
+            SocketUser {
+                game_uid: None,
+                player: None,
+            },
+        );
     }
 
     pub async fn is_player_in_queue(&self, player_uid: &str) -> bool {
         let queue = self.queue.read().await;
-        queue.iter().any(|(_, players)| players.iter()
-            .any(|p| p.player_uid == player_uid))
+        queue
+            .iter()
+            .any(|(_, players)| players.iter().any(|p| p.player_uid == player_uid))
     }
 
     pub async fn remove_player_from_all_queues(&self, player_uid: &str) {
@@ -150,7 +160,13 @@ impl Lobby {
     }
 
     pub async fn get_queue(&self, game_type: GameType) -> Vec<LobbyPlayer> {
-        self.queue.read().await.get(&game_type).cloned().unwrap_or_default().to_vec()
+        self.queue
+            .read()
+            .await
+            .get(&game_type)
+            .cloned()
+            .unwrap_or_default()
+            .to_vec()
     }
 
     pub async fn get_game_instances(&self) -> Vec<Arc<GameInstance>> {
@@ -184,56 +200,55 @@ impl Lobby {
     pub async fn end_game(&self, game_uid: &str, winner_player_uid: &str, game_result: GameResult) {
         debug!("Ending game: {:?}", game_uid);
         if let Some(game_instance) = self.get_game_instance(game_uid).await {
-                match game_result {
-                    GameResult::Default => {
-                        if game_instance.get_current_player().await.unwrap().get_uid() == winner_player_uid {
-                            match self.win_by_default(game_uid, winner_player_uid).await {
-                                Ok(_) => {
-                                    info!("Game ended by default: {:?}", game_uid);
-                                }
-                                Err(e) => {
-                                    error!(
-                                        "Failed to end game by default: {:?}, game_uid: {:?}",
-                                        e,
-                                        game_uid
-                                    );
-                                }
-                            }
-                        }
-                    }
-                    GameResult::Disconnect => {
-                        match self.win_by_disconnection(game_uid, winner_player_uid).await {
+            match game_result {
+                GameResult::Default => {
+                    if game_instance.get_current_player().await.unwrap().get_uid()
+                        == winner_player_uid
+                    {
+                        match self.win_by_default(game_uid, winner_player_uid).await {
                             Ok(_) => {
-                                info!("Game ended by disconnection: {:?}", game_uid);
+                                info!("Game ended by default: {:?}", game_uid);
                             }
                             Err(e) => {
                                 error!(
-                                    "Failed to end game by disconnection: {:?}, game_uid: {:?}",
-                                    e,
-                                    game_uid
-                                );
-                            }
-                        }
-                    }
-                    GameResult::Timeout => {
-                        match self.win_by_timeout(game_uid, winner_player_uid).await {
-                            Ok(_) => {
-                                info!("Game ended by timeout: {:?}", game_uid);
-                            }
-                            Err(e) => {
-                                error!(
-                                    "Failed to end game by timeout: {:?}, game_uid: {:?}",
-                                    e,
-                                    game_uid
+                                    "Failed to end game by default: {:?}, game_uid: {:?}",
+                                    e, game_uid
                                 );
                             }
                         }
                     }
                 }
-                let _ = game_instance.clean().await;
-                let mut games = self.games.write().await;
-                games.remove(game_uid);
-                debug!("Game removed from lobby: {:?}", game_uid);
+                GameResult::Disconnect => {
+                    match self.win_by_disconnection(game_uid, winner_player_uid).await {
+                        Ok(_) => {
+                            info!("Game ended by disconnection: {:?}", game_uid);
+                        }
+                        Err(e) => {
+                            error!(
+                                "Failed to end game by disconnection: {:?}, game_uid: {:?}",
+                                e, game_uid
+                            );
+                        }
+                    }
+                }
+                GameResult::Timeout => {
+                    match self.win_by_timeout(game_uid, winner_player_uid).await {
+                        Ok(_) => {
+                            info!("Game ended by timeout: {:?}", game_uid);
+                        }
+                        Err(e) => {
+                            error!(
+                                "Failed to end game by timeout: {:?}, game_uid: {:?}",
+                                e, game_uid
+                            );
+                        }
+                    }
+                }
+            }
+            let _ = game_instance.clean().await;
+            let mut games = self.games.write().await;
+            games.remove(game_uid);
+            debug!("Game removed from lobby: {:?}", game_uid);
         }
     }
 
@@ -261,39 +276,48 @@ impl Lobby {
         *lobby_queue_uid = Uuid::new_v4().to_string();
     }
 
-    pub async fn clear_queue(&self) {
+    pub async fn clear_queue(&self, game_type: GameType) {
         let mut queue = self.queue.write().await;
-        queue.clear();
+        let game_type_queue = queue.get_mut(&game_type).unwrap();
+        game_type_queue.clear();
     }
 
     pub async fn win_by_default(
         &self,
         game_uid: &str,
-        winner_player_uid: &str
+        winner_player_uid: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.save_game_result(game_uid, winner_player_uid, GameResult::Default).await?;
+        self.save_game_result(game_uid, winner_player_uid, GameResult::Default)
+            .await?;
         Ok(())
     }
 
     pub async fn win_by_disconnection(
         &self,
         game_uid: &str,
-        winner_player_uid: &str
+        winner_player_uid: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.save_game_result(game_uid, winner_player_uid, GameResult::Disconnect).await?;
+        self.save_game_result(game_uid, winner_player_uid, GameResult::Disconnect)
+            .await?;
         Ok(())
     }
 
     pub async fn win_by_timeout(
         &self,
         game_uid: &str,
-        winner_player_uid: &str
+        winner_player_uid: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.save_game_result(game_uid, winner_player_uid, GameResult::Timeout).await?;
+        self.save_game_result(game_uid, winner_player_uid, GameResult::Timeout)
+            .await?;
         Ok(())
     }
 
-    pub async fn save_game_result(&self, game_uid: &str, winner_player_uid: &str, game_result: GameResult) -> Result<(), Box<dyn std::error::Error>>  {
+    pub async fn save_game_result(
+        &self,
+        game_uid: &str,
+        winner_player_uid: &str,
+        game_result: GameResult,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let db_pool = self.db_pool.read().await;
         let game_instance = self.get_game_instance(game_uid).await.unwrap();
 
@@ -323,16 +347,16 @@ impl Lobby {
         for player in &players {
             let player_uid = player.get_public_uid();
             let player_name = player.get_name();
-            
-            
+
             let player_exists = sqlx::query!(
                 r#"SELECT COUNT(*) as count FROM stats WHERE player_uid = ?"#,
                 player_uid
             )
             .fetch_one(&*db_pool)
             .await?
-            .count > 0;
-            
+            .count
+                > 0;
+
             if player_exists {
                 let is_winner = player.get_uid() == winner_player_uid;
                 if is_winner {
@@ -357,7 +381,7 @@ impl Lobby {
                 let loss_count = if is_winner { 0 } else { 1 };
 
                 sqlx::query!(
-                    r#"INSERT INTO stats (player_uid, player_name, win_count, loss_count) 
+                    r#"INSERT INTO stats (player_uid, player_name, win_count, loss_count)
                        VALUES (?, ?, ?, ?)"#,
                     player_uid,
                     player_name,
@@ -374,11 +398,11 @@ impl Lobby {
                 .iter()
                 .map(|p| {
                     serde_json::json!({
-                    "player_uid": p.get_public_uid(),
-                    "player_name": p.get_name()
+                        "player_uid": p.get_public_uid(),
+                        "player_name": p.get_name()
+                    })
                 })
-                })
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>(),
         )?;
 
         let winner_clone = winner.clone();
@@ -391,9 +415,9 @@ impl Lobby {
         sqlx::query!(
             r#"
             INSERT INTO matches (
-                game_winner_uid, game_winner_name, game_other_players, game_uid, game_duration, game_start_time, 
+                game_winner_uid, game_winner_name, game_other_players, game_uid, game_duration, game_start_time,
                 game_type
-            ) 
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             "#,
                 winner_public_uid,
@@ -411,7 +435,7 @@ impl Lobby {
 
     pub async fn get_connection_uid_by_player_uid(&self, player_uid: &str) -> Option<String> {
         let socket_users = self.socket_users.read().await;
-        
+
         for (connection_id, socket_user) in socket_users.iter() {
             if let Some(player) = &socket_user.player {
                 if player.player_uid == player_uid {
@@ -419,7 +443,7 @@ impl Lobby {
                 }
             }
         }
-        
+
         None
     }
 }

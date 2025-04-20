@@ -11,8 +11,8 @@ export class WebSocketClient {
   private readonly PING_INTERVAL = 10000; // 10 seconds
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000; 
-  private maxReconnectDelay = 30000; 
+  private reconnectDelay = 1000;
+  private maxReconnectDelay = 30000;
 
   constructor(url: string) {
     this.url = url;
@@ -124,14 +124,14 @@ export class WebSocketClient {
     }
 
     console.log(
-      `Attempting to reconnect in ${this.reconnectDelay / 1000} seconds...`
+      `Attempting to reconnect in ${this.reconnectDelay / 1000} seconds...`,
     );
 
     setTimeout(() => {
       this.reconnectAttempts++;
       this.reconnectDelay = Math.min(
         this.reconnectDelay * 2,
-        this.maxReconnectDelay
+        this.maxReconnectDelay,
       );
       this.connect(this.url);
     }, this.reconnectDelay);

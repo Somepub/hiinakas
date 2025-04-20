@@ -1,6 +1,7 @@
 import { makeAutoObservable } from "mobx";
 import { LocalStore } from "../util/localStore";
 import { PublicLobbyPlayer } from "@proto/lobby";
+import { v4 } from "uuid";
 
 export class PlayerState {
   publicUid: string;
@@ -10,10 +11,14 @@ export class PlayerState {
   localStore: LocalStore;
 
   constructor(localStore: LocalStore) {
+    this.localStore = localStore;
     this.uid = localStore.getPlayerUid();
+    if (!this.uid) {
+      const newUid = v4();
+      this.setUid(newUid);
+    }
     this.name = localStore.getPlayerName();
     this.publicUid = localStore.getPlayerPublicUid();
-    this.localStore = localStore;
 
     makeAutoObservable(this);
   }

@@ -21,7 +21,7 @@ export class Menu {
     makeAutoObservable(this);
     when(
       () => this.gameInstance.iswebSocketConnected,
-      this.initializeSocketListeners
+      this.initializeSocketListeners,
     );
   }
 
