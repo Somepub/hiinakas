@@ -8,4 +8,8 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 
-/proto/
+# Proto generated files
+/proto
+proto/
+/src/proto/
+src/proto/
