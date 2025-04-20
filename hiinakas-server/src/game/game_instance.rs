@@ -110,16 +110,22 @@ impl GameInstance {
         let stop_signal = self.stop_signal.clone();
 
         tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_millis(900));
+            
             loop {
-                if *stop_signal.read().await {
-                    break;
-                }
-
-                let timer = timer_clone.clone();
-
-                if timer.expired().await {
-                    callback();
-                    break;
+                tokio::select! {
+                    _ = interval.tick() => {
+                        let timer = timer_clone.clone();
+                        if timer.expired().await {
+                            callback();
+                            break;
+                        }
+                    }
+                    stop = async { *stop_signal.read().await } => {
+                        if stop {
+                            break;
+                        }
+                    }
                 }
             }
         });
@@ -210,6 +216,16 @@ impl GameInstance {
             return Err("Game is full".into());
         }
         players.push(player);
+        Ok(())
+    }
+
+    pub async fn remove_player(&self, player_uid: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut players = self.players.write().await;
+        let player_index = match players.iter().position(|p| p.get_uid() == player_uid) {
+            Some(index) => index,
+            None => return Err("Player not found".into()),
+        };
+        players.remove(player_index);
         Ok(())
     }
 
