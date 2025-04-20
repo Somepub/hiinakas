@@ -81,9 +81,11 @@ export const GameDevView = observer(() => {
     SmallCard.create({ value: 7 }),
   ]);
 
-  gameInstance.opponents = [new Opponent(), new Opponent()];
+  gameInstance.opponents = [new Opponent(), new Opponent(), new Opponent(), new Opponent()];
   gameInstance.opponents[0].name = "Player 1";
   gameInstance.opponents[1].name = "Player 2";
+  //gameInstance.opponents[2].name = "Player 3";
+  //gameInstance.opponents[3].name = "Player 4";
 
   gameInstance.opponents[0].setCards(3);
   gameInstance.opponents[0].setFloorCards([
@@ -100,6 +102,22 @@ export const GameDevView = observer(() => {
     SmallCard.create({ value: 1 }),
   ]);
   gameInstance.opponents[1].setHiddenCards(3);
+
+ /* gameInstance.opponents[2].setCards(3);
+  gameInstance.opponents[2].setFloorCards([
+    SmallCard.create({ value: 1 }),
+    SmallCard.create({ value: 1 }),
+    SmallCard.create({ value: 1 }),
+  ]);
+  gameInstance.opponents[2].setHiddenCards(3);
+
+  gameInstance.opponents[3].setCards(3);
+  gameInstance.opponents[3].setFloorCards([
+    SmallCard.create({ value: 1 }),
+    SmallCard.create({ value: 1 }),
+    SmallCard.create({ value: 1 }),
+  ]);
+  gameInstance.opponents[3].setHiddenCards(3);*/
 
   gameInstance.deck.setCards(10);
   gameInstance.gameReady = true;
