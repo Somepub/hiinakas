@@ -2,44 +2,33 @@ syntax = "proto3";
 
 package lobby;
 
+enum LobbyQueueAction {
+  START = 0;
+  WAIT = 1;
+}
+
+enum GameType {
+  TWO_PLAYER = 0;
+  THREE_PLAYER = 1;
+  FOUR_PLAYER = 2;
+  FIVE_PLAYER = 3;
+}
+
 message LobbyPlayer {
   string player_uid = 1;
   string name = 2;
   string public_uid = 3;
 }
 
-message PlayerStats {
-  string uid = 1;
-  string name = 2;
-  uint32 wins = 3;
-  uint32 losses = 4;
-}
- 
-message MatchHistory {
-  string game_uid = 1;
-  string winner_uid = 2;
-  string winner_name = 3;
-  uint32 duration = 4;
-  uint32 game_type = 5;
-  repeated string other_players = 6;
-}
-
 message LobbyStatistics {
   uint32 player_count = 1;
   uint32 game_count = 2;
-  repeated PlayerStats player_stats = 3;
-  repeated MatchHistory match_history = 4;
-}
-
-enum LobbyQueueAction {
-  START = 0;
-  WAIT = 1;
 }
 
 message LobbyQueueRequest {
   LobbyPlayer player = 1;
   bool leave = 2;
-  uint32 max_players = 3;
+  GameType game_type = 3;
 }
 
 message LobbyQueueResponse {
@@ -51,3 +40,5 @@ message PublicLobbyPlayer {
   string public_uid = 1;
   string name = 2;
 }
+
+

@@ -1,0 +1,18 @@
+syntax = "proto3";
+package ws;
+
+enum EventType {
+    CONNECT = 0;
+    LOBBY_QUEUE = 1;
+    LOBBY_STATISTICS = 2;
+    GAME_TURN = 3;
+    DISCONNECT = 4;
+    PING = 5;
+    PONG = 6;
+    UNKNOWN = 7;
+}
+
+message WsEvent {
+    EventType event = 1;
+    bytes data = 2;
+}

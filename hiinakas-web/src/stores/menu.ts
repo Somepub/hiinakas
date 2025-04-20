@@ -1,34 +1,43 @@
 import { makeAutoObservable, when } from "mobx";
 import { GameInstance } from "./gameInstance";
-import { LobbyQueueAction, LobbyQueueRequest, LobbyQueueResponse, LobbyStatistics } from "@proto/lobby";
-
+import {
+  GameType,
+  LobbyQueueAction,
+  LobbyQueueRequest,
+  LobbyQueueResponse,
+  LobbyStatistics,
+} from "@proto/lobby";
+import { EventType } from "@proto/ws";
 export class Menu {
   gameInstance: GameInstance;
   isWaiting: boolean = false;
-  isOnTop10: boolean = false;
   statistics: LobbyStatistics = null!;
   maxPlayers: number = 2;
+  isOnTop10: boolean = false;
   isFullscreen: boolean = false;
 
   constructor(gameInstance: GameInstance) {
     this.gameInstance = gameInstance;
     makeAutoObservable(this);
-    when(() => this.gameInstance.iswebSocketConnected, this.initializeSocketListeners);
+    when(
+      () => this.gameInstance.iswebSocketConnected,
+      this.initializeSocketListeners
+    );
   }
 
   private initializeSocketListeners = () => {
-    const socketIO = this.gameInstance.socketManager.socket;
-    socketIO.on("lobby/queue", (message: ArrayBuffer) => {
-      const decodedMessage = LobbyQueueResponse.decode(new Uint8Array(message));
-      this.handleLobbyQueue(decodedMessage)
+    const ws = this.gameInstance.socketManager.socket;
+    ws.on(EventType.LOBBY_QUEUE, (data: Uint8Array) => {
+      const decodedMessage = LobbyQueueResponse.decode(data);
+      this.handleLobbyQueue(decodedMessage);
     });
-    socketIO.on("lobby/statistics", (message: ArrayBuffer) => {
-      const decodedMessage = LobbyStatistics.decode(new Uint8Array(message));
-      this.handleLobbyStatistics(decodedMessage)
+    ws.on(EventType.LOBBY_STATISTICS, (data: Uint8Array) => {
+      const decodedMessage = LobbyStatistics.decode(data);
+      this.handleLobbyStatistics(decodedMessage);
     });
-  }
+  };
 
-  findMatch() {
+  findMatch(gameType: GameType) {
     const msg = LobbyQueueRequest.create({
       player: {
         playerUid: this.gameInstance.player.uid,
@@ -36,13 +45,11 @@ export class Menu {
         publicUid: this.gameInstance.player.publicUid,
       },
       leave: false,
-      maxPlayers: this.maxPlayers,
+      gameType: gameType,
     });
-    console.log("Lobby queue", msg);
-    const socketIO = this.gameInstance.socketManager.socket;
-    const encodedMsg = Array.from(LobbyQueueRequest.encode(msg).finish());
-    socketIO.emit("lobby/queue", encodedMsg);
-    this.enterFullscreen();
+    const ws = this.gameInstance.socketManager.socket;
+    const encodedMsg = LobbyQueueRequest.encode(msg).finish();
+    ws.emit(EventType.LOBBY_QUEUE, encodedMsg);
     this.isWaiting = true;
   }
 
@@ -55,9 +62,9 @@ export class Menu {
       },
       leave: true,
     });
-    const socketIO = this.gameInstance.socketManager.socket;
-    const encodedMsg = Array.from(LobbyQueueRequest.encode(msg).finish());
-    socketIO.emit("lobby/queue", encodedMsg);
+    const ws = this.gameInstance.socketManager.socket;
+    const encodedMsg = LobbyQueueRequest.encode(msg).finish();
+    ws.emit(EventType.LOBBY_QUEUE, encodedMsg);
     this.isWaiting = false;
   }
 
@@ -91,14 +98,16 @@ export class Menu {
   }
 
   async enterFullscreen() {
-    if (document.documentElement.requestFullscreen) {
-      await document.documentElement.requestFullscreen().catch(err => console.error(err));
-    } else {
-      try {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement
+          .requestFullscreen()
+          .catch((err) => console.error(err));
+      } else {
         await (document.documentElement as any).webkitRequestFullscreen();
-      } catch (err) {
-        console.error("Try ios: ", err);
       }
+    } catch (err) {
+      console.error("Try ios: ", err);
     }
     this.setFullscreen(true);
   }

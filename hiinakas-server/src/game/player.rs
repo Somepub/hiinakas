@@ -1,4 +1,3 @@
-use serde::{ Deserialize, Serialize };
 use smallvec::SmallVec;
 
 use crate::protos::card::{ Card, SmallCard };
@@ -15,6 +14,7 @@ type BlindVec = SmallVec<[Card; MAX_BLIND_CARDS]>;
 pub struct Player {
     uid: String,
     public_uid: String,
+    connection_id: String,
     name: String,
     hand_cards: HandVec,
     floor_cards: FloorVec,
@@ -22,10 +22,11 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(uid: String, public_uid: String, name: String) -> Self {
+    pub fn new(uid: String, public_uid: String, connection_id: String, name: String) -> Self {
         Self {
             uid,
             public_uid,
+            connection_id,
             name,
             hand_cards: SmallVec::new(),
             floor_cards: SmallVec::new(),
@@ -39,6 +40,10 @@ impl Player {
 
     pub fn get_public_uid(&self) -> &str {
         &self.public_uid
+    }
+
+    pub fn get_connection_id(&self) -> &str {
+        &self.connection_id
     }
 
     pub fn get_name(&self) -> &str {
@@ -179,6 +184,7 @@ mod tests {
         let player = Player::new(
             "123".to_string(),
             "Test Player".to_string(),
+            "Test Player".to_string(),
             "Test Player".to_string()
         );
         assert_eq!(player.get_uid(), "123");
@@ -190,6 +196,7 @@ mod tests {
     fn test_add_and_remove_hand_card() {
         let mut player = Player::new(
             "123".to_string(),
+            "Test Player".to_string(),
             "Test Player".to_string(),
             "Test Player".to_string()
         );
@@ -206,7 +213,7 @@ mod tests {
 
     #[test]
     fn test_can_play_conditions() {
-        let mut player = Player::new("123".to_string(), "public_123".to_string(), "Test Player".to_string());
+        let mut player = Player::new("123".to_string(), "public_123".to_string(), "Test Player".to_string(), "Test Player".to_string());
 
         // Test blind cards
         player.add_blind_card(Card::new(Rank::Ace, Suit::Hearts));
@@ -225,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_clear_cards() {
-        let mut player = Player::new("123".to_string(), "Test Player".to_string(), "Test Player".to_string());
+        let mut player = Player::new("123".to_string(), "public_123".to_string(), "Test Player".to_string(), "Test Player".to_string());
 
         player.add_hand_card(Card::new(Rank::Ace, Suit::Hearts));
         player.add_floor_card(Card::new(Rank::King, Suit::Hearts));

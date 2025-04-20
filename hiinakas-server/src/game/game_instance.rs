@@ -3,7 +3,7 @@ use crate::utils::timer::Timer;
 use chrono::{ DateTime, Utc };
 use smallvec::SmallVec;
 use tokio::sync::RwLock;
-use tracing::{ debug, info, error };
+use tracing::{ debug, error, info, trace };
 use uuid::Uuid;
 
 use crate::protos::{
@@ -20,7 +20,8 @@ use crate::protos::{
 
 use super::{ deck::Deck, player::Player, table::Table };
 
-const MAX_PLAYERS: usize = 5;
+const MAX_PLAYERS: usize = 2;
+const TIMER_DURATION: u64 = 120070;
 
 #[derive(Debug, Clone)]
 pub struct GameInstance {
@@ -68,6 +69,7 @@ impl GameInstance {
 
     pub async fn get_current_player(&self) -> Option<Player> {
         let players = self.players.read().await;
+        trace!("player length: {:?}", players.len());
         let player = players.get(*self.turn_index.read().await);
         match player {
             Some(p) => Some(p.clone()),
@@ -82,6 +84,15 @@ impl GameInstance {
         match player {
             Some(p) => Some(p.clone()),
             None => None,
+        }
+    }
+
+    pub async fn get_player_connection_id(&self, player_uid: &str) -> String {
+        let players = self.players.read().await;
+        let player = players.iter().find(|p| p.get_uid() == player_uid);
+        match player {
+            Some(p) => p.get_connection_id().to_string(),
+            None => "".to_string(),
         }
     }
 
@@ -129,6 +140,7 @@ impl GameInstance {
             // Deal hand cards (3)
             for _ in 0..3 {
                 if let Some(card) = deck.draw_card() {
+                    trace!("Dealing hand card: {:?} to player: {:?}", card, player.get_name());
                     player.add_hand_card(card);
                 }
             }
@@ -136,6 +148,7 @@ impl GameInstance {
             // Deal floor cards (3)
             for _ in 0..3 {
                 if let Some(card) = deck.draw_card() {
+                    trace!("Dealing floor card: {:?} to player: {:?}", card, player.get_name());
                     player.add_floor_card(card);
                 }
             }
@@ -143,6 +156,7 @@ impl GameInstance {
             // Deal blind cards (3)
             for _ in 0..3 {
                 if let Some(card) = deck.draw_card() {
+                    trace!("Dealing blind card: {:?} to player: {:?}", card, player.get_name());
                     player.add_blind_card(card);
                 }
             }
@@ -153,7 +167,7 @@ impl GameInstance {
     }
 
     async fn start_timer(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let timer = Timer::with_duration(Duration::from_millis(60070));
+        let timer = Timer::with_duration(Duration::from_millis(TIMER_DURATION));
         let mut timer_guard = self.timer.write().await;
         *timer_guard = Some(timer);
         Ok(())
@@ -162,6 +176,20 @@ impl GameInstance {
     pub async fn stop_timer(&self) -> Result<(), Box<dyn std::error::Error>> {
         let mut stop = self.stop_signal.write().await;
         *stop = true;
+        Ok(())
+    }
+
+    pub async fn clean(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut players = self.players.write().await;
+        players.clear();
+
+        let mut deck = self.deck.write().await;
+        deck.clear();
+
+        let mut table = self.table.write().await;
+        table.clear();
+
+        let _ = self.stop_timer().await;
         Ok(())
     }
 
@@ -182,6 +210,7 @@ impl GameInstance {
         let player = match players.get_mut(turn_index) {
             Some(p) => p,
             None => {
+                trace!("Player not found, returning no effect");
                 return PlayCardFeedback {
                     is_played: false,
                     effect: Effect::NoEffect,
@@ -192,6 +221,7 @@ impl GameInstance {
         let card = match player.get_card(&card_uid) {
             Some(c) => c,
             None => {
+                trace!("Card not found, returning no effect");  
                 return PlayCardFeedback {
                     is_played: false,
                     effect: Effect::NoEffect,
@@ -201,6 +231,7 @@ impl GameInstance {
 
         let mut table = self.table.write().await;
         if !table.is_card_playable(&card, self.get_turn_moves().await).await {
+            trace!("Card is not playable");
             return PlayCardFeedback {
                 is_played: false,
                 effect: Effect::NoEffect,
@@ -213,6 +244,7 @@ impl GameInstance {
         if let Some(last_card) = last_card {
             let rank = last_card.get_rank();
             if rank == card.get_rank() {
+                trace!("Card is the same rank, resetting turn moves");
                 self.set_turn_moves(0).await;
             }
         }
@@ -223,6 +255,7 @@ impl GameInstance {
             let last_three = &table_cards[table_cards.len().saturating_sub(3)..];
             if last_three.len() == 3 && 
                last_three.iter().all(|c| c.get_rank() == card.get_rank()) {
+                trace!("4 cards in a row, destroying table");
                 table.clear();
                 self.set_turn_moves(0).await;
                 return PlayCardFeedback {
@@ -233,13 +266,16 @@ impl GameInstance {
         }
 
         if card.get_effect() == Effect::Destroy {
+            trace!("Card is destroy, destroying table");
             table.clear();
             self.set_turn_moves(0).await;
+            self.draw_card(player).await;
             PlayCardFeedback {
                 is_played: true,
                 effect: Effect::Destroy,
             }
         } else {
+            trace!("Regular card, adding to table");
             let effect = card.get_effect();
             table.add_card(card);
             self.set_turn_moves(self.get_turn_moves().await + 1).await;
@@ -256,6 +292,7 @@ impl GameInstance {
 
         match players.get_mut(turn_index) {
             Some(player) => {
+                trace!("Ending turn for player: {:?}", player.get_name());
                 self.draw_cards(player).await;
 
                 drop(players);
@@ -268,21 +305,23 @@ impl GameInstance {
 
                 let mut timer_guard = self.timer.write().await;
                 if let Some(timer) = &mut *timer_guard {
-                    //debug!("resetting timer");
+                    trace!("resetting timer");
                     timer.reset().await;
-                    //debug!("timer reset");
+                    trace!("timer reset");
                 }
                 drop(timer_guard);
 
                 true
             }
             None => {
+                trace!("Player not found, returning false");
                 return false;
             }
         }
     }
 
     pub async fn pickup_turn(&self) -> Result<(), Box<dyn std::error::Error>> {
+        trace!("Picking up turn");
         let turn_index = *self.turn_index.read().await;
         
         let table_cards = {
@@ -323,6 +362,7 @@ impl GameInstance {
     }
 
     async fn draw_card(&self, player: &mut Player) {
+        trace!("Drawing card for player: {:?}", player.get_name());
         let mut deck = self.deck.write().await;
         if let Some(card) = deck.draw_card() {
             player.add_hand_card(card);
@@ -386,7 +426,8 @@ impl GameInstance {
         player_uid: &str,
         feedback: GameTurnFeedback
     ) -> GameTurn {
-        //info!("Generating game turn for player: {:?}", player_uid);
+        let player_name = self.players.read().await[*self.turn_index.read().await].get_name().to_string();
+        debug!("Generating game turn for player: {:?}", player_name);
         let players = self.players.read().await;
         let curr_player = match players
             .iter()
@@ -449,6 +490,8 @@ impl GameInstance {
     fn generate_player_status(&self, player: &Player) -> PlayerStatus {
         let player_cards = player.get_hand_cards();
         let hidden_cards = player.get_blind_cards();
+
+        trace!("Gen player status for player: {:?}, hand cards: {:?}, floor cards: {:?}, hidden cards: {:?}, game uid: {:?}", player.get_name(), player_cards, player.get_small_floor_cards(), hidden_cards, self.uid);
 
         PlayerStatus {
             hand_cards: player_cards,
@@ -548,7 +591,7 @@ mod tests {
     #[tokio::test]
     async fn test_add_player() {
         let instance = GameInstance::new();
-        let player = Player::new("test_uid".to_string(), "test_public_uid".to_string(), "Test Player".to_string());
+        let player = Player::new("test_uid".to_string(), "test_public_uid".to_string(), "Test Player".to_string(), "Test Player".to_string());
 
         instance.add_player(player).await.unwrap();
 
@@ -559,8 +602,8 @@ mod tests {
     #[tokio::test]
     async fn test_game_initialization() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string());
+        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string(), "Player 1".to_string());
+        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string(), "Player 2".to_string());
 
         instance.add_player(player1).await.unwrap();
         instance.add_player(player2).await.unwrap();
@@ -580,8 +623,8 @@ mod tests {
     #[tokio::test]
     async fn test_play_card_success() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string());
+        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string(), "Player 1".to_string());
+        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string(), "Player 2".to_string());
         let player1_clone = player1.clone();
 
         instance.add_player(player1).await.unwrap();
@@ -608,15 +651,15 @@ mod tests {
     #[tokio::test]
     async fn test_play_card_failure() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string());
+        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string(), "Player 1".to_string());
+        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string(), "Player 2".to_string());
     }
 
     #[tokio::test]
     async fn test_pickup_turn() {
         let instance = GameInstance::new();
-        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string());
-        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string());
+        let player1 = Player::new("p1".to_string(), "public_p1".to_string(), "Player 1".to_string(), "Player 1".to_string());
+        let player2 = Player::new("p2".to_string(), "public_p2".to_string(), "Player 2".to_string(), "Player 2".to_string());
 
         instance.add_player(player1).await.unwrap();
         instance.add_player(player2).await.unwrap();

@@ -1,4 +1,5 @@
-import { Socket, io } from "socket.io-client";
+import { WebSocketClient } from './wsClient';
+import { EventType } from '@proto/ws';
 import {
   GameInstanceAction,
   GameInstanceMessageAction,
@@ -11,21 +12,18 @@ import {
 import { GameInstance } from "../stores/gameInstance";
 import { LobbyQueueResponse } from "@proto/lobby";
 import { Opponent } from "@stores/opponent";
-import { Effect } from "@proto/card";
 
 const SOCKET_EVENTS = {
-  CONNECT: "connect",
-  DISCONNECT: "disconnect",
-  LOBBY_QUEUE: "lobby/queue",
-  GAME_TURN: "game/turn",
+  CONNECT: EventType.CONNECT,
+  DISCONNECT: EventType.DISCONNECT,
+  LOBBY_QUEUE: EventType.LOBBY_QUEUE,
+  LOBBY_STATISTICS: EventType.LOBBY_STATISTICS,
+  GAME_TURN: EventType.GAME_TURN,
 } as const;
 
 const WEBSOCKET_CONFIG = {
   DEV_URL: "ws://localhost:5000",
-  PROD_URL: "wss://hiinakas.com",
-  PATH: "/v2/curak/",
-  POLLING_INTERVAL: 2500,
-  CONNECT_DELAY: 100,
+  PROD_URL: "wss://hiinakas.com/ws_hiinakas",
 } as const;
 
 export const getWebsocketUrl = () => {
@@ -34,7 +32,7 @@ export const getWebsocketUrl = () => {
 };
 
 export class SocketManager {
-  socket: Socket;
+  socket: WebSocketClient;
   private gameInstance: GameInstance;
 
   constructor(gameInstance: GameInstance) {
@@ -47,29 +45,22 @@ export class SocketManager {
   }
 
   private initializeSocket() {
-    this.socket = io(getWebsocketUrl(), {
-      secure: true,
-      rejectUnauthorized: true,
-    });
+    this.socket = new WebSocketClient(getWebsocketUrl());
   }
 
   private setupSocketListeners() {
-    this.socket.on(SOCKET_EVENTS.CONNECT, () => {
-      console.log("Socket connected");
-      this.setupGameEventListeners();
-    });
-
-    this.socket.on(SOCKET_EVENTS.DISCONNECT, this.handleDisconnect);
+    this.setupGameEventListeners();
   }
 
   private setupGameEventListeners() {
-    this.socket.on(SOCKET_EVENTS.LOBBY_QUEUE, (message: ArrayBuffer) => {
-      const decodedMessage = LobbyQueueResponse.decode(new Uint8Array(message));
+    this.socket.on(SOCKET_EVENTS.LOBBY_QUEUE, (data: Uint8Array) => {
+      const decodedMessage = LobbyQueueResponse.decode(data);
       console.log("decodedMessage", decodedMessage);
       this.handleLobbyConnect(decodedMessage);
     });
-    this.socket.on(SOCKET_EVENTS.GAME_TURN, (message: ArrayBuffer) => {
-      const decodedMessage = GameTurnResponse.decode(new Uint8Array(message));
+
+    this.socket.on(SOCKET_EVENTS.GAME_TURN, (data: Uint8Array) => {
+      const decodedMessage = GameTurnResponse.decode(data);
       this.handleGameTurn(decodedMessage);
     });
   }
@@ -77,26 +68,26 @@ export class SocketManager {
   playCard(cardId: string): Promise<boolean> {
     return new Promise((resolve) => {
       const msg = this.createGameRequest(GameInstanceAction.PLAY_CARD, cardId);
-      this.socket.once(SOCKET_EVENTS.GAME_TURN, (message: GameTurnResponse) => {
+      this.socket.once(SOCKET_EVENTS.GAME_TURN, (data: Uint8Array) => {
+        const message = GameTurnResponse.decode(data);
         resolve(
-          message.gameTurn?.player?.message?.type ===
-            GameInstanceMessageAction.INFO
+          message.gameTurn?.player?.message?.type === GameInstanceMessageAction.INFO
         );
       });
-      const encodedMsg = Array.from(GameTurnRequest.encode(msg).finish());
+      const encodedMsg = GameTurnRequest.encode(msg).finish();
       this.socket.emit(SOCKET_EVENTS.GAME_TURN, encodedMsg);
     });
   }
 
   endTurn() {
     const msg = this.createGameRequest(GameInstanceAction.END_TURN);
-    const encodedMsg = Array.from(GameTurnRequest.encode(msg).finish());
+    const encodedMsg = GameTurnRequest.encode(msg).finish();
     this.socket.emit(SOCKET_EVENTS.GAME_TURN, encodedMsg);
   }
 
   pickUp() {
     const msg = this.createGameRequest(GameInstanceAction.PICK_UP);
-    const encodedMsg = Array.from(GameTurnRequest.encode(msg).finish());
+    const encodedMsg = GameTurnRequest.encode(msg).finish();
     this.socket.emit(SOCKET_EVENTS.GAME_TURN, encodedMsg);
   }
 
@@ -189,7 +180,9 @@ export class SocketManager {
         .setHiddenCards(opponentInfo.hiddenCards);
     }
 
+    console.log("playerStatus", playerStatus);
     if (playerStatus) {
+      console.log("setting new cards?");
       this.gameInstance.hand.setCards(playerStatus.handCards);
       this.gameInstance.hand.setFloorCards(playerStatus.floorCards);
       this.gameInstance.hand.setHiddenCards(playerStatus.hiddenCards);

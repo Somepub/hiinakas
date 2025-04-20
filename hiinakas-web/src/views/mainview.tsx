@@ -3,29 +3,15 @@ import { MenuView } from "./menuview";
 import GameView, { GameDevView } from "./gameview";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@stores/stores";
-import { v4, validate as validateUid } from "uuid";
+// @ts-ignore
+import serviceWorker from "../../service-worker.js";
 
 const MainViewSwitch = observer(() => {
-    const { gameInstance, localStore } = useStore();
-
-    useEffect(() => {
-        const currentPublicUid = localStore.getPlayerPublicUid();
-        if (!currentPublicUid || !validateUid(currentPublicUid) ) {
-            const newPublicUid = v4();
-            gameInstance.player.setPublicUid(newPublicUid);
-        }
-
-        const currentUid = localStore.getPlayerUid();
-        if (!currentUid || !validateUid(currentUid) ) {
-            const newUid = v4();
-            gameInstance.player.setUid(newUid);
-        }
-
-    }, []);
-    
+    const { gameInstance } = useStore();
+    console.log(gameInstance.player, gameInstance.gameReady);
     return (
         <>
-            {!gameInstance.gameReady && <MenuView />}
+            {gameInstance.player.name && gameInstance.player.uid && !gameInstance.gameReady && <MenuView />}
             {gameInstance.gameReady && <GameView />}
         </>
     );
@@ -38,5 +24,19 @@ const DevView = observer(() => {
 });
 
 export const MainView = () => {
+    useEffect(() => {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+              navigator.serviceWorker
+                .register(new URL('./service-worker.js', import.meta.url))
+                .then((_registration) => {
+                  console.log('ServiceWorker registration successful');
+                })
+                .catch((err) => {
+                  console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+          }
+    }, []);
     return <MainViewSwitch />;
 };

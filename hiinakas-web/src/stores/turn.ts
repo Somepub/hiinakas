@@ -59,6 +59,14 @@ export class Turn {
   setWinner(winner: boolean, gameInstance: GameInstance) {
     if(this.action === GameInstanceAction.WIN) {
       this.isWinner = winner;
+      this.gameInstance.timer.stopTimer();
+      this.gameInstance.deck.clearDeck();
+      this.gameInstance.hand.clearCards();
+      this.gameInstance.table.clearTable();
+      this.gameInstance.opponents.forEach( (opponent) => {
+        opponent.clearCards();
+      });
+      this.gameInstance.opponents = [];
     }
   }
 

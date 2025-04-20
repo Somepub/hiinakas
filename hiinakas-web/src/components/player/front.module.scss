@@ -6,6 +6,7 @@
     height: 100%;
     width: 100%;
     margin-right: 15px;
+    position: relative;
 }
 
 #frontCards {
@@ -21,4 +22,12 @@
 .hiddenCards {
     display: flex;
     position: absolute;
+}
+
+@media (min-width: 1024px) {
+    #frontCards {
+        bottom: 0;
+        right: 85px;
+        position: absolute;
+    }
 }

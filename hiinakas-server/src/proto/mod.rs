@@ -7,3 +7,6 @@ pub mod game {
 pub mod lobby {
     include!("lobby.rs");
 }
+pub mod ws {
+    include!("ws.rs");
+}

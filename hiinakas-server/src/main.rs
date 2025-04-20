@@ -3,6 +3,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 mod server;
 mod lobby;
 mod game;
+mod db;
 pub mod protos;
 pub mod utils;
 
@@ -17,5 +18,5 @@ async fn main() {
         .pretty()
         .init();
 
-    server::http_server::run_server().await;
+    server::ws_handler::handle_ws_events().await;
 }

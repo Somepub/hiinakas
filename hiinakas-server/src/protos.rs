@@ -8,4 +8,8 @@ pub mod game {
 
 pub mod lobby {
     include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/proto/lobby.rs"));
-} 
+}
+
+pub mod ws {
+    include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/proto/ws.rs"));
+}

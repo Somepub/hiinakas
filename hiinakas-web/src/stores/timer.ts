@@ -1,7 +1,7 @@
 import { makeAutoObservable } from "mobx";
 
 export class Timer {
-    timeLeft: number = 60;
+    timeLeft: number = 120;
     private intervalId: number | null = null;
 
     constructor() {
@@ -12,7 +12,7 @@ export class Timer {
         if (this.intervalId) {
             window.clearInterval(this.intervalId);
         }
-        this.timeLeft = 60;
+        this.timeLeft = 120;
         this.intervalId = window.setInterval(() => {
             if (this.timeLeft > 0) {
                 this.timeLeft -= 1;
@@ -20,5 +20,11 @@ export class Timer {
                 window.clearInterval(this.intervalId);
             }
         }, 1000);
+    }
+
+    stopTimer() {
+        if (this.intervalId) {
+            window.clearInterval(this.intervalId);
+        }
     }
 }

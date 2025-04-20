@@ -1,13 +1,14 @@
 use std::sync::Arc;
+
 use hashbrown::HashMap;
 use serde::{ Deserialize, Serialize };
 use sqlx::SqlitePool;
 use tokio::sync::RwLock;
 use smallvec::SmallVec;
-use tracing::{ error, info };
+use tracing::{ debug, error, info, trace };
 use uuid::Uuid;
 
-use crate::{ game::{ self, game_instance::GameInstance }, protos::lobby::LobbyPlayer };
+use crate::{ game::game_instance::GameInstance, protos::lobby::{GameType, LobbyPlayer} };
 
 #[derive(Debug, Clone)]
 pub struct SocketUser {
@@ -15,20 +16,31 @@ pub struct SocketUser {
     pub player: Option<LobbyPlayer>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(into = "u8")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(into = "i32", from = "i32")]
 pub enum GameResult {
-    DefaultWin,
-    Win,
-    Loss,
+    Disconnect = 0,
+    Default = 1,
+    Timeout = 2,
 }
 
-impl Into<u8> for GameResult {
-    fn into(self) -> u8 {
-        match self {
-            GameResult::DefaultWin => 0,
-            GameResult::Win => 1,
-            GameResult::Loss => 2,
+impl From<GameResult> for i32 {
+    fn from(result: GameResult) -> Self {
+        match result {
+            GameResult::Disconnect => 0,
+            GameResult::Default => 1,
+            GameResult::Timeout => 2,
+        }
+    }
+}
+
+impl From<i32> for GameResult {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => GameResult::Disconnect,
+            1 => GameResult::Default,
+            2 => GameResult::Timeout,
+            _ => GameResult::Disconnect,
         }
     }
 }
@@ -59,87 +71,35 @@ pub struct GameWinnerRequest {
 
 #[derive(Debug, Clone)]
 pub struct Lobby {
-    queue_2p: Arc<RwLock<SmallVec<[LobbyPlayer; 2]>>>,
-    queue_3p: Arc<RwLock<SmallVec<[LobbyPlayer; 3]>>>,
-    queue_4p: Arc<RwLock<SmallVec<[LobbyPlayer; 4]>>>,
-    queue_5p: Arc<RwLock<SmallVec<[LobbyPlayer; 5]>>>,
+    queue: Arc<RwLock<HashMap<GameType, SmallVec<[LobbyPlayer; GameType::FivePlayer as usize]>>>>,
     games: Arc<RwLock<HashMap<String, Arc<GameInstance>>>>,
     socket_users: Arc<RwLock<HashMap<String, SocketUser>>>,
     lobby_queue_uid: Arc<RwLock<String>>,
-    pub db_pool: Arc<RwLock<SqlitePool>>,
+    connection_map: Arc<RwLock<HashMap<String, ConnectionResponse>>>,
+    db_pool: Arc<RwLock<SqlitePool>>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum GameType {
-    TwoPlayer = 2,
-    ThreePlayer = 3,
-    FourPlayer = 4,
-    FivePlayer = 5,
-}
-
-impl From<GameType> for i32 {
-    fn from(game_type: GameType) -> Self {
-        match game_type {
-            GameType::TwoPlayer => 2,
-            GameType::ThreePlayer => 3,
-            GameType::FourPlayer => 4,
-            GameType::FivePlayer => 5,
-        }
-    }
-}
-
-impl From<i32> for GameType {
-    fn from(value: i32) -> Self {
-        match value {
-            2 => GameType::TwoPlayer,
-            3 => GameType::ThreePlayer,
-            4 => GameType::FourPlayer,
-            5 => GameType::FivePlayer,
-            _ => GameType::TwoPlayer,
-        }
-    }
+fn is_debug() -> bool {
+    cfg!(debug_assertions)
 }
 
 impl Lobby {
     pub fn new(db_pool: Arc<RwLock<SqlitePool>>) -> Self {
         Self {
-            db_pool,
-            queue_2p: Arc::new(RwLock::new(SmallVec::new())),
-            queue_3p: Arc::new(RwLock::new(SmallVec::new())),
-            queue_4p: Arc::new(RwLock::new(SmallVec::new())),
-            queue_5p: Arc::new(RwLock::new(SmallVec::new())),
+            queue: Arc::new(RwLock::new(HashMap::new())),
             games: Arc::new(RwLock::new(HashMap::new())),
             socket_users: Arc::new(RwLock::new(HashMap::new())),
             lobby_queue_uid: Arc::new(RwLock::new(Uuid::new_v4().to_string())),
+            connection_map: Arc::new(RwLock::new(HashMap::new())),
+            db_pool: db_pool,
         }
     }
 
     pub async fn add_player_to_queue(&self, player: LobbyPlayer, game_type: GameType) {
-        match game_type {
-            GameType::TwoPlayer => {
-                let mut queue = self.queue_2p.write().await;
-                if !queue.iter().any(|p| p.player_uid == player.player_uid) {
-                    queue.push(player);
-                }
-            },
-            GameType::ThreePlayer => {
-                let mut queue = self.queue_3p.write().await;
-                if !queue.iter().any(|p| p.player_uid == player.player_uid) {
-                    queue.push(player);
-                }
-            },
-            GameType::FourPlayer => {
-                let mut queue = self.queue_4p.write().await;
-                if !queue.iter().any(|p| p.player_uid == player.player_uid) {
-                    queue.push(player);
-                }
-            },
-            GameType::FivePlayer => {
-                let mut queue = self.queue_5p.write().await;
-                if !queue.iter().any(|p| p.player_uid == player.player_uid) {
-                    queue.push(player);
-                }
-            },
+        let mut queue = self.queue.write().await;
+        let queue_entry = queue.entry(game_type).or_insert_with(|| SmallVec::new());
+        if !queue_entry.iter().any(|p| p.player_uid == player.player_uid) {
+            queue_entry.push(player);
         }
     }
 
@@ -156,67 +116,26 @@ impl Lobby {
         });
     }
 
-    pub async fn is_player_in_queue(&self, player_uid: &str, max_players: u32) -> bool {
-        let game_type = match max_players {
-            2 => GameType::TwoPlayer,
-            3 => GameType::ThreePlayer,
-            4 => GameType::FourPlayer,
-            5 => GameType::FivePlayer,
-            _ => GameType::TwoPlayer,
-        };
-        match game_type {
-            GameType::TwoPlayer => {
-                let queue = self.queue_2p.read().await;
-                queue.iter().any(|p| p.player_uid == player_uid)
-            },
-            GameType::ThreePlayer => {
-                let queue = self.queue_3p.read().await;
-                queue.iter().any(|p| p.player_uid == player_uid)
-            },
-            GameType::FourPlayer => {
-                let queue = self.queue_4p.read().await;
-                queue.iter().any(|p| p.player_uid == player_uid)
-            },
-            GameType::FivePlayer => {
-                let queue = self.queue_5p.read().await;
-                queue.iter().any(|p| p.player_uid == player_uid)
-            },
-        }
+    pub async fn is_player_in_queue(&self, player_uid: &str) -> bool {
+        let queue = self.queue.read().await;
+        queue.iter().any(|(_, players)| players.iter()
+            .any(|p| p.player_uid == player_uid))
     }
 
-    pub async fn remove_player_from_queue(&self, player_uid: &str, max_players: u32) {
-        let game_type = match max_players {
-            2 => GameType::TwoPlayer,
-            3 => GameType::ThreePlayer,
-            4 => GameType::FourPlayer,
-            5 => GameType::FivePlayer,
-            _ => GameType::TwoPlayer,
-        };
-        match game_type {
-            GameType::TwoPlayer => {
-                let mut queue = self.queue_2p.write().await;
-                if let Some(pos) = queue.iter().position(|p| p.player_uid == player_uid) {
-                    queue.remove(pos);
-                }
-            },
-            GameType::ThreePlayer => {
-                let mut queue = self.queue_3p.write().await;
-                if let Some(pos) = queue.iter().position(|p| p.player_uid == player_uid) {
-                    queue.remove(pos);
-                }
-            },
-            GameType::FourPlayer => {
-                let mut queue = self.queue_4p.write().await;
-                if let Some(pos) = queue.iter().position(|p| p.player_uid == player_uid) {
-                    queue.remove(pos);
-                }
-            },
-            GameType::FivePlayer => {
-                let mut queue = self.queue_5p.write().await;
-                if let Some(pos) = queue.iter().position(|p| p.player_uid == player_uid) {
-                    queue.remove(pos);
-                }
-            },
+    pub async fn remove_player_from_all_queues(&self, player_uid: &str) {
+        if self.is_player_in_queue(player_uid).await {
+            self.remove_player_from_queue(player_uid).await;
+        }
+
+        debug!("Removed player {} from all queues", player_uid);
+    }
+
+    pub async fn remove_player_from_queue(&self, player_uid: &str) {
+        let mut queue = self.queue.write().await;
+        for (_game_type, players) in queue.iter_mut() {
+            if let Some(pos) = players.iter().position(|p| p.player_uid == player_uid) {
+                players.remove(pos);
+            }
         }
     }
 
@@ -231,12 +150,7 @@ impl Lobby {
     }
 
     pub async fn get_queue(&self, game_type: GameType) -> Vec<LobbyPlayer> {
-        match game_type {
-            GameType::TwoPlayer => self.queue_2p.read().await.to_vec(),
-            GameType::ThreePlayer => self.queue_3p.read().await.to_vec(),
-            GameType::FourPlayer => self.queue_4p.read().await.to_vec(),
-            GameType::FivePlayer => self.queue_5p.read().await.to_vec(),
-        }
+        self.queue.read().await.get(&game_type).cloned().unwrap_or_default().to_vec()
     }
 
     pub async fn get_game_instances(&self) -> Vec<Arc<GameInstance>> {
@@ -267,39 +181,59 @@ impl Lobby {
         }
     }
 
-    pub async fn end_game_disconnection(&self, game_uid: &str, winner_player_uid: &str) {
-        //debug!("Ending game by disconnection: {:?}, {:?}", game_uid, winner_player_uid);
+    pub async fn end_game(&self, game_uid: &str, winner_player_uid: &str, game_result: GameResult) {
+        debug!("Ending game: {:?}", game_uid);
         if let Some(game_instance) = self.get_game_instance(game_uid).await {
-            match self.win_by_default(game_uid, winner_player_uid).await {
-                Ok(_) => {
-                    info!("Game ended by disconnection: {:?}, {:?}", game_uid, winner_player_uid);
-                }
-                Err(e) => {
-                    error!("Failed to end game: {:?}, game_uid: {:?}", e, game_uid);
-                }
-            }
-            let _ = game_instance.stop_timer().await;
-            let mut games = self.games.write().await;
-            games.remove(game_uid);
-        }
-    }
-
-    pub async fn end_game(&self, game_uid: &str, winner_player_uid: &str) {
-        //debug!("Ending game by default: {:?}", game_uid);
-        if let Some(game_instance) = self.get_game_instance(game_uid).await {
-            if game_instance.get_current_player().await.unwrap().get_uid() == winner_player_uid {
-                match self.win_by_default(game_uid, winner_player_uid).await {
-                    Ok(_) => {
-                        info!("Game ended by default: {:?}", game_uid);
+                match game_result {
+                    GameResult::Default => {
+                        if game_instance.get_current_player().await.unwrap().get_uid() == winner_player_uid {
+                            match self.win_by_default(game_uid, winner_player_uid).await {
+                                Ok(_) => {
+                                    info!("Game ended by default: {:?}", game_uid);
+                                }
+                                Err(e) => {
+                                    error!(
+                                        "Failed to end game by default: {:?}, game_uid: {:?}",
+                                        e,
+                                        game_uid
+                                    );
+                                }
+                            }
+                        }
                     }
-                    Err(e) => {
-                        error!("Failed to end game: {:?}, game_uid: {:?}", e, game_uid);
+                    GameResult::Disconnect => {
+                        match self.win_by_disconnection(game_uid, winner_player_uid).await {
+                            Ok(_) => {
+                                info!("Game ended by disconnection: {:?}", game_uid);
+                            }
+                            Err(e) => {
+                                error!(
+                                    "Failed to end game by disconnection: {:?}, game_uid: {:?}",
+                                    e,
+                                    game_uid
+                                );
+                            }
+                        }
+                    }
+                    GameResult::Timeout => {
+                        match self.win_by_timeout(game_uid, winner_player_uid).await {
+                            Ok(_) => {
+                                info!("Game ended by timeout: {:?}", game_uid);
+                            }
+                            Err(e) => {
+                                error!(
+                                    "Failed to end game by timeout: {:?}, game_uid: {:?}",
+                                    e,
+                                    game_uid
+                                );
+                            }
+                        }
                     }
                 }
+                let _ = game_instance.clean().await;
                 let mut games = self.games.write().await;
                 games.remove(game_uid);
-            }
-            let _ = game_instance.stop_timer().await;
+                debug!("Game removed from lobby: {:?}", game_uid);
         }
     }
 
@@ -327,25 +261,9 @@ impl Lobby {
         *lobby_queue_uid = Uuid::new_v4().to_string();
     }
 
-    pub async fn clear_queue(&self, game_type: GameType) {
-        match game_type {
-            GameType::TwoPlayer => {
-                let mut queue = self.queue_2p.write().await;
-                queue.clear();
-            },
-            GameType::ThreePlayer => {
-                let mut queue = self.queue_3p.write().await;
-                queue.clear();
-            },
-            GameType::FourPlayer => {
-                let mut queue = self.queue_4p.write().await;
-                queue.clear();
-            },
-            GameType::FivePlayer => {
-                let mut queue = self.queue_5p.write().await;
-                queue.clear();
-            },
-        }
+    pub async fn clear_queue(&self) {
+        let mut queue = self.queue.write().await;
+        queue.clear();
     }
 
     pub async fn win_by_default(
@@ -353,6 +271,29 @@ impl Lobby {
         game_uid: &str,
         winner_player_uid: &str
     ) -> Result<(), Box<dyn std::error::Error>> {
+        self.save_game_result(game_uid, winner_player_uid, GameResult::Default).await?;
+        Ok(())
+    }
+
+    pub async fn win_by_disconnection(
+        &self,
+        game_uid: &str,
+        winner_player_uid: &str
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.save_game_result(game_uid, winner_player_uid, GameResult::Disconnect).await?;
+        Ok(())
+    }
+
+    pub async fn win_by_timeout(
+        &self,
+        game_uid: &str,
+        winner_player_uid: &str
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.save_game_result(game_uid, winner_player_uid, GameResult::Timeout).await?;
+        Ok(())
+    }
+
+    pub async fn save_game_result(&self, game_uid: &str, winner_player_uid: &str, game_result: GameResult) -> Result<(), Box<dyn std::error::Error>>  {
         let db_pool = self.db_pool.read().await;
         let game_instance = self.get_game_instance(game_uid).await.unwrap();
 
@@ -466,5 +407,19 @@ impl Lobby {
             .execute(&*db_pool).await?;
 
         Ok(())
+    }
+
+    pub async fn get_connection_uid_by_player_uid(&self, player_uid: &str) -> Option<String> {
+        let socket_users = self.socket_users.read().await;
+        
+        for (connection_id, socket_user) in socket_users.iter() {
+            if let Some(player) = &socket_user.player {
+                if player.player_uid == player_uid {
+                    return Some(connection_id.clone());
+                }
+            }
+        }
+        
+        None
     }
 }

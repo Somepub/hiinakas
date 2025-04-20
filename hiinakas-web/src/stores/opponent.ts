@@ -49,4 +49,10 @@ export class Opponent {
   getName() {
     return this.name;
   }
+
+  clearCards() {
+    this.cards = 0;
+    this.floorCards = [];
+    this.hiddenCards = 0;
+  }
 }

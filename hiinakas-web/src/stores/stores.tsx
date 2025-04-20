@@ -17,7 +17,7 @@ const StoreContext = createContext<Context>(null);
 
 export const useStore = () => useContext(StoreContext);
 
-export const StoreProvider = ({children}: {children: React.ReactNode}) => {
+export const StoreProvider = ({children}: {children: any}) => {
     const timer = new Timer();
     const localStore = new LocalStore();
     const floatingTextStore = new FloatingTextStore();

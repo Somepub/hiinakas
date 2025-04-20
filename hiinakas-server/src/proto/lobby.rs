@@ -10,43 +10,11 @@ pub struct LobbyPlayer {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PlayerStats {
-    #[prost(string, tag = "1")]
-    pub uid: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(uint32, tag = "3")]
-    pub wins: u32,
-    #[prost(uint32, tag = "4")]
-    pub losses: u32,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MatchHistory {
-    #[prost(string, tag = "1")]
-    pub game_uid: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub winner_uid: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub winner_name: ::prost::alloc::string::String,
-    #[prost(uint32, tag = "4")]
-    pub duration: u32,
-    #[prost(uint32, tag = "5")]
-    pub game_type: u32,
-    #[prost(string, repeated, tag = "6")]
-    pub other_players: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LobbyStatistics {
     #[prost(uint32, tag = "1")]
     pub player_count: u32,
     #[prost(uint32, tag = "2")]
     pub game_count: u32,
-    #[prost(message, repeated, tag = "3")]
-    pub player_stats: ::prost::alloc::vec::Vec<PlayerStats>,
-    #[prost(message, repeated, tag = "4")]
-    pub match_history: ::prost::alloc::vec::Vec<MatchHistory>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -55,8 +23,8 @@ pub struct LobbyQueueRequest {
     pub player: ::core::option::Option<LobbyPlayer>,
     #[prost(bool, tag = "2")]
     pub leave: bool,
-    #[prost(uint32, tag = "3")]
-    pub max_players: u32,
+    #[prost(enumeration = "GameType", tag = "3")]
+    pub game_type: i32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -96,6 +64,38 @@ impl LobbyQueueAction {
         match value {
             "START" => Some(Self::Start),
             "WAIT" => Some(Self::Wait),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum GameType {
+    TwoPlayer = 0,
+    ThreePlayer = 1,
+    FourPlayer = 2,
+    FivePlayer = 3,
+}
+impl GameType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            GameType::TwoPlayer => "TWO_PLAYER",
+            GameType::ThreePlayer => "THREE_PLAYER",
+            GameType::FourPlayer => "FOUR_PLAYER",
+            GameType::FivePlayer => "FIVE_PLAYER",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TWO_PLAYER" => Some(Self::TwoPlayer),
+            "THREE_PLAYER" => Some(Self::ThreePlayer),
+            "FOUR_PLAYER" => Some(Self::FourPlayer),
+            "FIVE_PLAYER" => Some(Self::FivePlayer),
             _ => None,
         }
     }

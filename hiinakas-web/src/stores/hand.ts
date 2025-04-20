@@ -14,6 +14,7 @@ export class Hand {
   }
 
   setCards(_cards: Card[]) {
+    console.log("setting cards", _cards);
     if(_cards) {
       this.cards.splice(0, this.cards.length, ..._cards);
     }
@@ -39,6 +40,12 @@ export class Hand {
 
   getHiddenCards() {
     return this.hiddenCards;
+  }
+
+  clearCards() {
+    this.cards = [];
+    this.floorCards = [];
+    this.hiddenCards = 0;
   }
 
   get numCards() {
