@@ -491,7 +491,7 @@ impl LobbyHandler {
                 .collect(),
         };
 
-        self.ws_server.emit(EventType::LobbyStatistics, statistics.encode_to_vec()).await;
+        let _ = self.ws_server.emit(EventType::LobbyStatistics, statistics.encode_to_vec()).await;
         Ok(())
     }
 
